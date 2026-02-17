@@ -1,6 +1,10 @@
 # Nuxt Portfolio Slider
 
+![Portfolio Slider Preview](.github/images/portfolio-slider.jpg)
+
 This project demonstrates the **PortfolioSlider** component — an interactive pseudo 3d slider.
+
+[**Live Demo**](https://aavainshtein.github.io/portfolio-slider/)
 
 ## Key Features
 
