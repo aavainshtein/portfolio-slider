@@ -1,0 +1,23 @@
+{
+  "name": "portfolio-slider",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@nuxt/image": "2.0.0",
+    "@nuxtjs/tailwindcss": "6.14.0",
+    "@vueuse/core": "^14.2.1",
+    "@vueuse/gesture": "^2.0.0",
+    "@vueuse/nuxt": "14.2.1",
+    "nuxt": "^4.3.1",
+    "nuxt-lodash": "^2.5.3",
+    "vue": "^3.5.28",
+    "vue-router": "^4.6.4"
+  }
+}
