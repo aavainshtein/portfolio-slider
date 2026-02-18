@@ -344,10 +344,10 @@ function getBaseParams() {
   return {
     length,
     last: length - 1 || 1,
-    maxRotate: 70,
+    maxRotate: Math.min(length * 3, 75),
     maxDepth,
-    minScale: 0.1,
-    maxBlur: 50,
+    minScale: clamp(1 - length * 0.05, 0.4, 0.9),
+    maxBlur: 60,
   };
 }
 
@@ -600,7 +600,7 @@ function stopInertia() {
               type="button"
               class="lg:hidden self-center p-8 inline-flex justify-center items-center cursor-pointer focus:outline-none h-11 w-11 rounded-xl border border-neutral-200 dark:border-neutral-600 text-neutral-600 dark:text-neutral-400 bg-gray-100 dark:bg-white/10 hover:bg-gray-200/40 hover:dark:bg-gray-700 active:bg-gray-200/80 active:dark:bg-gray-800"
               @click.stop="goToPrevItem"
-              @touchstart.stop
+              @touchstart.passive.stop
               @mousedown.stop
               @pointerdown.stop
             >
@@ -655,7 +655,7 @@ function stopInertia() {
               type="button"
               class="lg:hidden self-center p-8 inline-flex justify-center items-center cursor-pointer focus:outline-none h-11 w-11 rounded-xl border border-neutral-200 dark:border-neutral-600 text-neutral-600 dark:text-neutral-400 bg-gray-100 dark:bg-white/10 hover:bg-gray-200/40 hover:dark:bg-gray-700 active:bg-gray-200/80 active:dark:bg-gray-800"
               @click.stop="goToNextItem"
-              @touchstart.stop
+              @touchstart.passive.stop
               @mousedown.stop
               @pointerdown.stop
             >
@@ -686,7 +686,7 @@ function stopInertia() {
             type="button"
             class="p-8 inset-y-0 start-0 inline-flex justify-center items-center cursor-pointer focus:outline-none h-11 w-11 rounded-xl border border-neutral-200 dark:border-neutral-600 text-neutral-600 dark:text-neutral-400 bg-gray-100 dark:bg-white/10 hover:bg-gray-200/40 hover:dark:bg-gray-700 active:bg-gray-200/80 active:dark:bg-gray-800"
             @click="goToPrevItem"
-            @touchstart.stop
+            @touchstart.passive.stop
             @mousedown.stop
             @pointerdown.stop
           >
@@ -712,7 +712,7 @@ function stopInertia() {
             type="button"
             class="p-8 inset-y-0 start-0 inline-flex justify-center items-center cursor-pointer focus:outline-none h-11 w-11 rounded-xl border border-neutral-200 dark:border-neutral-600 text-neutral-600 dark:text-neutral-400 bg-gray-100 dark:bg-white/10 hover:bg-gray-200/40 hover:dark:bg-gray-700 active:bg-gray-200/80 active:dark:bg-gray-800"
             @click="goToNextItem"
-            @touchstart.stop
+            @touchstart.passive.stop
             @mousedown.stop
             @pointerdown.stop
           >

@@ -119,34 +119,36 @@ function removeProject() {
 </script>
 
 <template>
-  <div
-    class="flex min-h-screen flex-col items-center p-4 bg-neutral-100 dark:bg-neutral-900 dark:text-neutral-300"
-  >
-    <DarkSwitch />
-    <div class="mb-6 flex items-center justify-center gap-3">
-      <button
-        type="button"
-        class="h-10 w-10 rounded border border-neutral-300 text-2xl leading-none dark:border-neutral-700"
-        @click="removeProject"
-        :disabled="!(projects.length > 1)"
-      >
-        -
-      </button>
+  <ClientOnly>
+    <div
+      class="flex min-h-screen flex-col items-center p-4 bg-neutral-100 dark:bg-neutral-900 dark:text-neutral-300"
+    >
+      <DarkSwitch />
+      <div class="mb-6 flex items-center justify-center gap-3">
+        <button
+          type="button"
+          class="h-10 w-10 rounded border border-neutral-300 text-2xl leading-none dark:border-neutral-700"
+          @click="removeProject"
+          :disabled="!(projects.length > 1)"
+        >
+          -
+        </button>
 
-      <div
-        class="min-w-24 text-center text-sm text-neutral-600 dark:text-neutral-300"
-      >
-        Projects: {{ projects.length }}
+        <div
+          class="min-w-24 text-center text-sm text-neutral-600 dark:text-neutral-300"
+        >
+          Projects: {{ projects.length }}
+        </div>
+
+        <button
+          type="button"
+          class="h-10 w-10 rounded border border-neutral-300 text-2xl leading-none dark:border-neutral-700"
+          @click="addProject"
+        >
+          +
+        </button>
       </div>
-
-      <button
-        type="button"
-        class="h-10 w-10 rounded border border-neutral-300 text-2xl leading-none dark:border-neutral-700"
-        @click="addProject"
-      >
-        +
-      </button>
+      <PortfolioSlider :projects="projects" />
     </div>
-    <PortfolioSlider :projects="projects" />
-  </div>
+  </ClientOnly>
 </template>
