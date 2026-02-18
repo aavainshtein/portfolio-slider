@@ -119,11 +119,13 @@ function removeProject() {
 </script>
 
 <template>
+  <div
+  class="flex min-h-screen flex-col items-center p-4 bg-neutral-100 dark:bg-neutral-900 dark:text-neutral-300"
+  >
   <ClientOnly>
-    <div
-      class="flex min-h-screen flex-col items-center p-4 bg-neutral-100 dark:bg-neutral-900 dark:text-neutral-300"
-    >
       <DarkSwitch />
+  </ClientOnly>
+
       <div class="mb-6 flex items-center justify-center gap-3">
         <button
           type="button"
@@ -150,5 +152,5 @@ function removeProject() {
       </div>
       <PortfolioSlider :projects="projects" />
     </div>
-  </ClientOnly>
+
 </template>
