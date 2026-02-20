@@ -1,5 +1,6 @@
 <script setup lang="ts">
 export type Project = {
+  id?: string | number;
   slug: string;
   title: string;
   description: string;
@@ -150,6 +151,6 @@ function removeProject() {
         +
       </button>
     </div>
-    <PortfolioSlider :projects="projects" />
+    <PortfolioSlider :projects="projects" :renderLimit="10" />
   </div>
 </template>

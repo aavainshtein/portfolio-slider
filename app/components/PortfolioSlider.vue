@@ -23,9 +23,18 @@ type NumericStyle = {
 
 const props = defineProps<{
   projects: Project[];
+  renderLimit?: number;
 }>();
 
 const projects = ref<SliderItem[]>([]);
+const globalActiveIndex = ref(0);
+
+const effectiveWindowSize = computed(() => {
+  const projectsLength = props.projects.length;
+  if (!props.renderLimit || props.renderLimit >= projectsLength)
+    return projectsLength;
+  return Math.max(props.renderLimit, 2);
+});
 
 const activeProjectTexts = computed(() => {
   const activeItem = projects.value[1];
@@ -62,7 +71,13 @@ const snapStopVelocity = 0.01;
 watch(
   () => props.projects,
   () => {
-    const sliderItems = wrapForSlider(props.projects);
+    globalActiveIndex.value = 0;
+
+    const sliderItems = wrapForSlider(
+      props.projects,
+      globalActiveIndex.value,
+      effectiveWindowSize.value,
+    );
     projects.value = applyProgressStyles(sliderItems, 0);
   },
   { immediate: true, deep: true },
@@ -72,38 +87,111 @@ onUnmounted(() => {
   stopInertia();
 });
 
-function wrapForSlider(items: Project[]): SliderItem[] {
-  if (!items.length) return [];
+function getVisibleItems(
+  allItems: Project[],
+  activeIdx: number,
+  renderLimit: number,
+) {
+  if (allItems.length === 0) return [];
 
-  const firstSourceId =
-    (items[0] as SliderItem | undefined)?.id ?? items[0]?.slug ?? "first";
-  const lastSourceId =
-    (items[items.length - 1] as SliderItem | undefined)?.id ??
-    items[items.length - 1]?.slug ??
-    "last";
+  const safeIdx =
+    ((activeIdx % allItems.length) + allItems.length) % allItems.length;
 
-  const firstItem = {
-    ...(items[0] || {}),
-    id: `clone-right-${String(firstSourceId)}`,
+  const effectiveRenderLimit = Math.min(renderLimit, allItems.length);
+
+  const nextItems = allItems
+    .slice(safeIdx, safeIdx + effectiveRenderLimit)
+    .map((item, index) => ({
+      ...item,
+      originalIndex: safeIdx + index,
+    }));
+
+  if (nextItems.length < effectiveRenderLimit) {
+    nextItems.push(
+      ...allItems
+        .slice(0, effectiveRenderLimit - nextItems.length)
+        .map((item, index) => ({
+          ...item,
+          originalIndex: index,
+        })),
+    );
+  }
+
+  return nextItems;
+}
+
+function wrapForSlider(
+  projects: Project[],
+  activeIdx: number,
+  renderLimit: number,
+): SliderItem[] {
+  // let items: Project[] = [];
+
+  const visibleItems = getVisibleItems(projects, activeIdx, renderLimit);
+
+  if (visibleItems.length < 1) return [];
+
+  const firstVisibleIndex = visibleItems[0]?.originalIndex;
+  const lastVisibleIndex = visibleItems[visibleItems.length - 1]?.originalIndex;
+
+  if (firstVisibleIndex === undefined || lastVisibleIndex === undefined)
+    return [];
+
+  const isWindowMode = projects.length > renderLimit;
+
+  const firstInvisibleItemIndex = isWindowMode
+    ? firstVisibleIndex > 0
+      ? firstVisibleIndex - 1
+      : projects.length - 1
+    : lastVisibleIndex;
+
+  const lastInvisibleItemIndex = isWindowMode
+    ? lastVisibleIndex < projects.length - 1
+      ? lastVisibleIndex + 1
+      : 0
+    : firstVisibleIndex;
+
+  function getProjectId(project: Project) {
+    const id = project.id ? `${project.id}` : Math.random() * 1000;
+    return `${id}`;
+  }
+
+  const firstInvisibleProject = {
+    ...props.projects[firstInvisibleItemIndex],
+    originalIndex: firstInvisibleItemIndex,
+  };
+  const lastInvisibleProject = {
+    ...props.projects[lastInvisibleItemIndex],
+    originalIndex: lastInvisibleItemIndex,
+  };
+  if (!firstInvisibleProject || !lastInvisibleProject) return [];
+
+  const firstInvisibleSliderItem = {
+    ...firstInvisibleProject,
+    id: `first-invisible-${getProjectId(firstInvisibleProject)}`,
     img: {
-      ...(items[0]?.img || {}),
+      ...(firstInvisibleProject?.img || {}),
     },
-  } as SliderItem;
+  };
 
-  const lastItem = {
-    ...(items[items.length - 1] || {}),
-    id: `clone-left-${String(lastSourceId)}`,
+  const lastInvisibleSliderItem = {
+    ...lastInvisibleProject,
+    id: `last-invisible-${getProjectId(lastInvisibleProject)}`,
     img: {
-      ...(items[items.length - 1]?.img || {}),
+      ...(lastInvisibleProject?.img || {}),
     },
-  } as SliderItem;
+  };
 
-  const itemsWithId = items.map((item, index) => ({
+  const visibleItemsWithId = visibleItems.map((item, index) => ({
     ...item,
-    id: (item as SliderItem).id ?? `real-${index}-${item.slug ?? "noslug"}`,
+    id: `visible-${getProjectId(item)}-${index}`,
   }));
 
-  return [lastItem, ...itemsWithId, firstItem];
+  return [
+    firstInvisibleSliderItem,
+    ...visibleItemsWithId,
+    lastInvisibleSliderItem,
+  ];
 }
 
 // functions with sideEffects to change state of projects and active item
@@ -131,7 +219,7 @@ function dragHandler(event: FullGestureState<"drag">) {
 
     const shiftedProjects =
       stepDelta !== 0
-        ? getShiftedProjectsBy(stepDelta, projects.value)
+        ? getShiftedProjectsBy(stepDelta, props.projects)
         : [...projects.value];
 
     dragProgress.value = rawProgress - desiredStepOffset;
@@ -192,8 +280,16 @@ function applyButtonImpulse(direction: 1 | -1) {
 }
 
 function shiftProjectsBy(steps: number) {
-  const shiftedProjects = getShiftedProjectsBy(steps, projects.value);
-  projects.value = applyProgressStyles(shiftedProjects, 0);
+  const n = props.projects.length;
+  if (n < 2) return;
+  globalActiveIndex.value = (((globalActiveIndex.value + steps) % n) + n) % n;
+
+  const sliderItems = wrapForSlider(
+    props.projects,
+    globalActiveIndex.value,
+    effectiveWindowSize.value,
+  );
+  projects.value = applyProgressStyles(sliderItems, 0);
 }
 
 function finishWithSnap(initialVelocity = 0) {
@@ -290,28 +386,15 @@ function startInertia(inertiaVelocityValue: number) {
 
 // style math side effect free functions
 
-function getShiftedProjectsBy(steps: number, items: SliderItem[]) {
-  if (!steps) return [...items];
-  if (props.projects.length < 2) return [...items];
+function getShiftedProjectsBy(steps: number, projects: Project[]) {
+  const totalProjects = projects.length;
 
-  const realItems = items.slice(1, -1);
-  if (realItems.length < 2) return [...items];
+  const previewIndex =
+    (((globalActiveIndex.value + steps) % totalProjects) + totalProjects) %
+    totalProjects;
 
-  const turns = Math.abs(steps) % realItems.length;
-  if (turns === 0) return [...items];
-
-  let itemsCopy = [...realItems];
-  for (let i = 0; i < turns; i++) {
-    if (steps > 0) {
-      const first = itemsCopy.shift();
-      if (first) itemsCopy.push(first);
-    } else {
-      const last = itemsCopy.pop();
-      if (last) itemsCopy.unshift(last);
-    }
-  }
-
-  return wrapForSlider(itemsCopy);
+  globalActiveIndex.value = previewIndex;
+  return wrapForSlider(projects, previewIndex, effectiveWindowSize.value);
 }
 
 function applyProgressStyles(items: SliderItem[], progress = 0) {
@@ -339,7 +422,7 @@ function lerp(start: number, end: number, value: number) {
 }
 
 function getBaseParams() {
-  const length = props.projects.length;
+  const length = effectiveWindowSize.value;
   const maxDepth = Math.min(length * 40, 500);
   return {
     length,
@@ -414,7 +497,7 @@ function getFirstInvisibleStyle(): NumericStyle {
     scale: 1,
     blur: 10,
     containerTranslateX: -50,
-    zIndex: props.projects.length * 2 + 100,
+    zIndex: effectiveWindowSize.value * 2 + 100,
   };
 }
 
@@ -433,7 +516,7 @@ function getLastInvisibleStyle(): NumericStyle {
 }
 
 function getInterpolatedStyle(position: number): NumericStyle {
-  const length = props.projects.length;
+  const length = effectiveWindowSize.value;
   if (!length) return getFirstInvisibleStyle();
 
   if (position <= -1) return getFirstInvisibleStyle();
@@ -477,7 +560,7 @@ function truncateTowardZero(value: number) {
 function getPixelsPerStep(event: FullGestureState<"drag">): number {
   const currentTarget = event.event?.currentTarget as HTMLElement | null;
   if (!currentTarget) return 320;
-  return (currentTarget.clientWidth * 0.5) / props.projects.length;
+  return (currentTarget.clientWidth * 0.5) / effectiveWindowSize.value;
 }
 
 function getSlotsVelocityFromPixelVelocity(vx: number): number {
