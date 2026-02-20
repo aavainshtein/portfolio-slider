@@ -17,7 +17,7 @@ const isDark = computed({
 
 <template>
   <div
-    class="p-2 items-center justify-center flex text-xl cursor-pointer"
+    class="items-center justify-center flex text-xl cursor-pointer"
     @click="isDark = !isDark"
   >
     <!-- <Icon :name="isDark ? 'i-lucide-moon' : 'i-lucide-sun'" /> -->

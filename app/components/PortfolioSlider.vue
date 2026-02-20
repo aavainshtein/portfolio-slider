@@ -579,23 +579,10 @@ function stopInertia() {
 </script>
 
 <template>
-  <!-- Heading -->
-  <div
-    class="container text-center flex flex-col items-center justify-center gap-3"
-  >
-    <h2 class="text-3xl font-bold">Portfolio</h2>
-    <p class="lg:mx-auto text-neutral-600 dark:text-neutral-300">
-      Infinite slider with some animations and touch
-    </p>
-    <!-- indexes: {{ projects.map((item) => item.id) }} -->
-  </div>
-
-  <!-- Heading End-->
-
   <div
     class="grid w-full select-none"
-    style="touch-action: pan-y; user-select: none; -webkit-user-select: none"
     v-drag="dragHandler"
+    style="touch-action: pan-y; user-select: none; -webkit-user-select: none"
   >
     <!-- Gradient on bg -->
     <div
@@ -698,34 +685,10 @@ function stopInertia() {
               <span class="sr-only">Previous</span>
             </button>
 
-            <div
-              class="grid grid-rows-[auto_1fr] lg:mt-8 text-2xl gap-2 select-none"
-            >
-              <!-- Невидимые sizer-элементы для резервирования места -->
-              <template v-for="item in projects" :key="item.id">
-                <div
-                  class="lg:mt-8 text-2xl font-semibold invisible row-start-1 col-start-1"
-                >
-                  {{ item.title }}
-                </div>
-                <div
-                  class="text-base md:text-xl invisible row-start-2 col-start-1"
-                >
-                  {{ item.description }}
-                </div>
-              </template>
-              <!-- Видимый анимированный текст (один экземпляр) -->
-              <div
-                class="lg:mt-8 text-2xl font-semibold row-start-1 col-start-1"
-              >
-                {{ activeProjectTexts.title }}
-              </div>
-              <div
-                class="text-base md:text-xl row-start-2 col-start-1 text-neutral-600 dark:text-neutral-300"
-              >
-                {{ activeProjectTexts.description }}
-              </div>
-            </div>
+            <slot
+              name="description"
+              :selectedItemIndex="globalActiveIndex"
+            ></slot>
 
             <button
               type="button"
