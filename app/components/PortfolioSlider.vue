@@ -517,15 +517,8 @@ function stopInertia() {
     <!-- Gradient on bg -->
     <div
       aria-hidden="true"
-      class="inset-0 w-full grid row-start-1 col-start-1 items-center grid-cols-2 opacity-40 dark:opacity-20"
-    >
-      <div
-        class="blur-[106px] h-56 bg-gradient-to-br from-cyan-100 to-primary-400 dark:from-blue-700"
-      ></div>
-      <div
-        class="blur-[106px] h-32 bg-gradient-to-r from-cyan-400 to-sky-300 dark:to-indigo-600"
-      ></div>
-    </div>
+      class="inset-0 w-full grid row-start-1 col-start-1 self-center blur-[80px] h-52 bg-gradient-to-br from-cyan-200 dark:from-blue-400 opacity-70 dark:opacity-50 rounded-lg pointer-events-none"
+    ></div>
     <!-- Gradient on bg End -->
 
     <!-- Slider cards-->
@@ -588,7 +581,7 @@ function stopInertia() {
 
     <!-- Description-->
     <div
-      class="lg:container lg:col-start-1 lg:row-start-1 px-4"
+      class="lg:container lg:col-start-1 lg:row-start-1 px-4 mx-auto"
       :style="{ zIndex: `${projects.length * 2 + 10}` }"
     >
       <div
