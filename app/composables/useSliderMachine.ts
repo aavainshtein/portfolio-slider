@@ -12,6 +12,7 @@ type SliderState =
       type: "dragging";
       progress: number;
       stepOffset: number;
+      baseOffset: number;
     }
   | {
       type: "inertia";
@@ -145,10 +146,6 @@ export function useSliderMachine(
   // --- Internal: start inertia loop ---
 
   function startInertiaLoop(velocity: number, progress: number) {
-    console.log(
-      `[inertia] START velocity=${velocity.toFixed(5)} progress=${progress.toFixed(3)} selectedIndex=${selectedProjectIndex.value}`,
-    );
-
     const tick = (ts: number) => {
       const s = state.value;
       if (s.type !== "inertia") return;
@@ -163,31 +160,15 @@ export function useSliderMachine(
       // Shift items when progress crosses ±1
       let shifted = false;
       while (newProgress >= 1) {
-        console.log(
-          `[inertia] SHIFT +1 | before=${selectedProjectIndex.value} progress=${newProgress.toFixed(3)}`,
-        );
         shiftSelectedIndex(1);
         newProgress -= 1;
         shifted = true;
-        console.log(
-          `[inertia] SHIFT +1 | after=${selectedProjectIndex.value} progress=${newProgress.toFixed(3)}`,
-        );
       }
       while (newProgress <= -1) {
-        console.log(
-          `[inertia] SHIFT -1 | before=${selectedProjectIndex.value} progress=${newProgress.toFixed(3)}`,
-        );
         shiftSelectedIndex(-1);
         newProgress += 1;
         shifted = true;
-        console.log(
-          `[inertia] SHIFT -1 | after=${selectedProjectIndex.value} progress=${newProgress.toFixed(3)}`,
-        );
       }
-
-      console.log(
-        `[inertia] TICK dt=${dt.toFixed(1)} v=${newVelocity.toFixed(5)} progress=${newProgress.toFixed(3)} idx=${selectedProjectIndex.value}`,
-      );
 
       if (shifted) {
         rebuildItems(newProgress);
@@ -197,9 +178,6 @@ export function useSliderMachine(
 
       // Check if velocity depleted → transition to snapping
       if (Math.abs(newVelocity) <= PHYSICS.minInertiaVelocity) {
-        console.log(
-          `[inertia] → SNAPPING velocity depleted v=${newVelocity.toFixed(5)} progress=${newProgress.toFixed(3)} idx=${selectedProjectIndex.value}`,
-        );
         startSnapLoop(newProgress, newVelocity);
         return;
       }
@@ -307,7 +285,8 @@ export function useSliderMachine(
         switch (event.type) {
           case "DRAG_MOVE": {
             if (event.dirY >= 0.35) return; // not horizontal
-            const rawProgress = -event.movementX / event.pixelsPerStep;
+            const rawProgress =
+              s.frozenProgress + -event.movementX / event.pixelsPerStep;
             const stepOffset = truncateTowardZero(rawProgress);
             const progress = rawProgress - stepOffset;
 
@@ -322,6 +301,7 @@ export function useSliderMachine(
               type: "dragging",
               progress,
               stepOffset,
+              baseOffset: s.frozenProgress,
             };
             return;
           }
@@ -336,7 +316,8 @@ export function useSliderMachine(
       case "dragging": {
         switch (event.type) {
           case "DRAG_MOVE": {
-            const rawProgress = -event.movementX / event.pixelsPerStep;
+            const rawProgress =
+              s.baseOffset + -event.movementX / event.pixelsPerStep;
             const desiredStepOffset = truncateTowardZero(rawProgress);
             const stepDelta = desiredStepOffset - s.stepOffset;
             const progress = rawProgress - desiredStepOffset;
@@ -352,6 +333,7 @@ export function useSliderMachine(
               type: "dragging",
               progress,
               stepOffset: desiredStepOffset,
+              baseOffset: s.baseOffset,
             };
             return;
           }
