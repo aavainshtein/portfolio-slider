@@ -12,6 +12,11 @@ export type Project = {
   };
 };
 
+const selectedProjectIndex = ref(0);
+
+const renderLimit = ref(10);
+
+
 const randomWords = [
   "awesome",
   "super",
@@ -46,7 +51,7 @@ function createProject(index: number) {
   };
 }
 
-const projects = reactive<Project[]>([
+const projects = ref<Project[]>([
   {
     slug: "space-tacos",
     title: "Space Tacos Delivery",
@@ -110,22 +115,22 @@ const projects = reactive<Project[]>([
 ]);
 
 function addProject() {
-  projects.push(createProject(projects.length));
+  projects.value.push(createProject(projects.value.length));
 }
 
 function removeProject() {
-  if (projects.length <= 1) return;
-  projects.pop();
+  if (projects.value.length <= 1) return;
+  projects.value.pop();
 }
 
-const renderLimit = ref(10);
 </script>
 
 <template>
   <div
     class="flex min-h-screen flex-col items-center bg-neutral-100 dark:bg-neutral-900 dark:text-neutral-300"
   >
-    <div class="container flex p-4 gap-4 items-center justify-end">
+    <div class="container flex p-4 gap-4 items-center justify-end"> 
+      selectedProjectIndex: {{ selectedProjectIndex }}
       <ClientOnly>
         <DarkSwitch />
       </ClientOnly>
@@ -192,19 +197,23 @@ const renderLimit = ref(10);
 
     <!-- Heading End-->
 
-    <PortfolioSlider :projects="projects" :renderLimit="renderLimit">
-      <template #description="{ selectedItemIndex }">
+    <PortfolioSlider
+      v-model:selectedProjectIndex="selectedProjectIndex"
+      :projects="projects"
+      :renderLimit="renderLimit"
+    >
+      <template #description>
         <div class="text-sm text-neutral-600 dark:text-neutral-300">
           <div
             class="grid grid-rows-[auto_1fr] lg:mt-8 text-2xl gap-2 select-none"
           >
             <div class="lg:mt-8 text-2xl font-semibold row-start-1 col-start-1">
-              {{ projects[selectedItemIndex]?.title }}
+              {{ projects[selectedProjectIndex]?.title }}
             </div>
             <div
               class="text-base md:text-xl row-start-2 col-start-1 text-neutral-600 dark:text-neutral-300"
             >
-              {{ projects[selectedItemIndex]?.description }}
+              {{ projects[selectedProjectIndex]?.description }}
             </div>
           </div>
         </div>
