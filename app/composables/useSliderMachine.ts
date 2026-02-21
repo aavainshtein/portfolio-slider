@@ -261,9 +261,9 @@ export function useSliderMachine(
   // --- Public: send event ---
 
   function send(event: SliderEvent) {
-    const s = state.value;
+    const currentState = state.value;
 
-    switch (s.type) {
+    switch (currentState.type) {
       case "idle": {
         switch (event.type) {
           case "POINTER_DOWN": {
@@ -286,7 +286,8 @@ export function useSliderMachine(
           case "DRAG_MOVE": {
             if (event.dirY >= 0.35) return; // not horizontal
             const rawProgress =
-              s.frozenProgress + -event.movementX / event.pixelsPerStep;
+              currentState.frozenProgress +
+              -event.movementX / event.pixelsPerStep;
             const stepOffset = truncateTowardZero(rawProgress);
             const progress = rawProgress - stepOffset;
 
@@ -301,12 +302,12 @@ export function useSliderMachine(
               type: "dragging",
               progress,
               stepOffset,
-              baseOffset: s.frozenProgress,
+              baseOffset: currentState.frozenProgress,
             };
             return;
           }
           case "POINTER_UP": {
-            startSnapLoop(s.frozenProgress, 0);
+            startSnapLoop(currentState.frozenProgress, 0);
             return;
           }
         }
@@ -317,9 +318,9 @@ export function useSliderMachine(
         switch (event.type) {
           case "DRAG_MOVE": {
             const rawProgress =
-              s.baseOffset + -event.movementX / event.pixelsPerStep;
+              currentState.baseOffset + -event.movementX / event.pixelsPerStep;
             const desiredStepOffset = truncateTowardZero(rawProgress);
-            const stepDelta = desiredStepOffset - s.stepOffset;
+            const stepDelta = desiredStepOffset - currentState.stepOffset;
             const progress = rawProgress - desiredStepOffset;
 
             if (stepDelta !== 0) {
@@ -333,15 +334,15 @@ export function useSliderMachine(
               type: "dragging",
               progress,
               stepOffset: desiredStepOffset,
-              baseOffset: s.baseOffset,
+              baseOffset: currentState.baseOffset,
             };
             return;
           }
           case "POINTER_UP": {
             if (Math.abs(event.releaseVelocity) > PHYSICS.minInertiaVelocity) {
-              startInertiaLoop(event.releaseVelocity, s.progress);
+              startInertiaLoop(event.releaseVelocity, currentState.progress);
             } else {
-              startSnapLoop(s.progress, 0);
+              startSnapLoop(currentState.progress, 0);
             }
             return;
           }
@@ -356,19 +357,19 @@ export function useSliderMachine(
             stopAnimation();
             state.value = {
               type: "pressed",
-              frozenProgress: s.progress,
+              frozenProgress: currentState.progress,
             };
             return;
           }
           case "BUTTON_PRESS": {
             const impulse = event.direction * PHYSICS.buttonImpulseVelocity;
             const newVelocity = clamp(
-              s.velocity + impulse,
+              currentState.velocity + impulse,
               -PHYSICS.maxInertiaVelocity,
               PHYSICS.maxInertiaVelocity,
             );
             // Update velocity in-place; the rAF loop picks it up
-            state.value = { ...s, velocity: newVelocity };
+            state.value = { ...currentState, velocity: newVelocity };
             return;
           }
         }
@@ -382,7 +383,7 @@ export function useSliderMachine(
             stopAnimation();
             state.value = {
               type: "pressed",
-              frozenProgress: s.progress,
+              frozenProgress: currentState.progress,
             };
             return;
           }
