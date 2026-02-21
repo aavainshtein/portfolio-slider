@@ -56,7 +56,7 @@ const projects = ref<Project[]>([
     slug: "space-tacos",
     title: "Space Tacos Delivery",
     description:
-      "An intergalactic taco delivery service powered by quantum burritos and AI-guided salsa drones.",
+      "An intergalactic taco delivery service powered by quantum burritos and AI-guided salsa drones. An intergalactic taco delivery service powered by quantum burritos and AI-guided salsa drones.",
     img: {
       src: "https://picsum.photos/1920/1080",
       alt: "Space Tacos Dashboard",
@@ -113,6 +113,25 @@ const projects = ref<Project[]>([
     },
   },
 ]);
+
+const biggestDescriptionAndTitle= computed(() => {
+  return projects.value.reduce((acc, project) => {
+    const titleLength = project.title.length;
+    const descriptionLength = project.description.length;
+
+    if (titleLength > acc.title.length) {
+      acc.title = project.title;
+    }
+
+    if (descriptionLength > acc.description.length) {
+      acc.description = project.description;
+    }
+
+    return acc;
+  }, { title: "", description: "" });
+});
+
+
 
 function addProject() {
   projects.value.push(createProject(projects.value.length));
@@ -207,8 +226,14 @@ function removeProject() {
           <div
             class="grid grid-rows-[auto_1fr] lg:mt-8 text-2xl gap-2 select-none"
           >
+            <div class="invisible  lg:mt-8 text-2xl font-semibold row-start-1 col-start-1">
+              {{ biggestDescriptionAndTitle.title }}
+            </div>
             <div class="lg:mt-8 text-2xl font-semibold row-start-1 col-start-1">
               {{ projects[selectedProjectIndex]?.title }}
+            </div>
+            <div class="invisible  text-base md:text-xl row-start-2 col-start-1 text-neutral-600 dark:text-neutral-300"">
+              {{ biggestDescriptionAndTitle.description }}
             </div>
             <div
               class="text-base md:text-xl row-start-2 col-start-1 text-neutral-600 dark:text-neutral-300"
