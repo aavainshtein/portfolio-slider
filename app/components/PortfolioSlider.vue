@@ -4,6 +4,7 @@ import type { FullGestureState } from "@vueuse/gesture";
 
 type SliderItem = Omit<Project, "img"> & {
   id: string | number;
+  originalIndex: number;
   img: Project["img"] & {
     style?: Record<string, string>;
     containerStyle?: Record<string, string>;
@@ -26,23 +27,18 @@ const props = defineProps<{
   renderLimit?: number;
 }>();
 
-const projects = ref<SliderItem[]>([]);
-const globalActiveIndex = ref(0);
+const selectedProjectIndex = defineModel<number>("selectedProjectIndex", {
+  default: 0,
+  required: false,
+});
+
+const sliderItems = ref<SliderItem[]>([]);
 
 const effectiveWindowSize = computed(() => {
   const projectsLength = props.projects.length;
   if (!props.renderLimit || props.renderLimit >= projectsLength)
     return projectsLength;
   return Math.max(props.renderLimit, 2);
-});
-
-const activeProjectTexts = computed(() => {
-  const activeItem = projects.value[1];
-  return {
-    title: activeItem?.title || "",
-    description: activeItem?.description || "",
-    slug: activeItem?.slug || "",
-  };
 });
 
 // state for dragging
@@ -69,16 +65,19 @@ const snapStopEpsilon = 0.002;
 const snapStopVelocity = 0.01;
 
 watch(
-  () => props.projects,
+  () => [props.projects, props.renderLimit],
   () => {
-    globalActiveIndex.value = 0;
+    // selectedProjectIndex.value >= props.projects.length &&
+    //   (selectedProjectIndex.value = 0);
 
-    const sliderItems = wrapForSlider(
+    console.log("selectedProjectIndex.value", selectedProjectIndex.value);
+
+    const itemsForSlider = wrapForSlider(
       props.projects,
-      globalActiveIndex.value,
+      selectedProjectIndex.value,
       effectiveWindowSize.value,
     );
-    projects.value = applyProgressStyles(sliderItems, 0);
+    sliderItems.value = applyProgressStyles(itemsForSlider, 0);
   },
   { immediate: true, deep: true },
 );
@@ -151,34 +150,37 @@ function wrapForSlider(
       : 0
     : firstVisibleIndex;
 
+  const firstSourceProject = props.projects[firstInvisibleItemIndex];
+  const lastSourceProject = props.projects[lastInvisibleItemIndex];
+  if (!firstSourceProject || !lastSourceProject) return [];
+
   function getProjectId(project: Project) {
     const id = project.id ? `${project.id}` : Math.random() * 1000;
     return `${id}`;
   }
 
   const firstInvisibleProject = {
-    ...props.projects[firstInvisibleItemIndex],
+    ...firstSourceProject,
     originalIndex: firstInvisibleItemIndex,
   };
   const lastInvisibleProject = {
-    ...props.projects[lastInvisibleItemIndex],
+    ...lastSourceProject,
     originalIndex: lastInvisibleItemIndex,
   };
-  if (!firstInvisibleProject || !lastInvisibleProject) return [];
 
   const firstInvisibleSliderItem = {
     ...firstInvisibleProject,
-    id: `first-invisible-${getProjectId(firstInvisibleProject)}`,
+    id: `first-invisible-${getProjectId(firstSourceProject)}`,
     img: {
-      ...(firstInvisibleProject?.img || {}),
+      ...(firstInvisibleProject.img || {}),
     },
   };
 
   const lastInvisibleSliderItem = {
     ...lastInvisibleProject,
-    id: `last-invisible-${getProjectId(lastInvisibleProject)}`,
+    id: `last-invisible-${getProjectId(lastSourceProject)}`,
     img: {
-      ...(lastInvisibleProject?.img || {}),
+      ...(lastInvisibleProject.img || {}),
     },
   };
 
@@ -197,7 +199,7 @@ function wrapForSlider(
 // functions with sideEffects to change state of projects and active item
 
 function dragHandler(event: FullGestureState<"drag">) {
-  if (projects.value.length < 2) return;
+  if (sliderItems.value.length < 2) return;
 
   const target = event.event?.target as HTMLElement;
 
@@ -220,11 +222,14 @@ function dragHandler(event: FullGestureState<"drag">) {
     const shiftedProjects =
       stepDelta !== 0
         ? getShiftedProjectsBy(stepDelta, props.projects)
-        : [...projects.value];
+        : [...sliderItems.value];
 
     dragProgress.value = rawProgress - desiredStepOffset;
 
-    projects.value = applyProgressStyles(shiftedProjects, dragProgress.value);
+    sliderItems.value = applyProgressStyles(
+      shiftedProjects,
+      dragProgress.value,
+    );
 
     dragStepOffset.value = desiredStepOffset;
   }
@@ -259,7 +264,7 @@ function goToPrevItem() {
 }
 
 function applyButtonImpulse(direction: 1 | -1) {
-  if (projects.value.length < 2) return;
+  if (sliderItems.value.length < 2) return;
 
   isDragging.value = false;
   dragStepOffset.value = 0;
@@ -276,20 +281,33 @@ function applyButtonImpulse(direction: 1 | -1) {
     return;
   }
 
+  // console.log("Applying button impulse with velocity:", nextVelocity);
+
   startInertia(nextVelocity);
 }
 
 function shiftProjectsBy(steps: number) {
   const n = props.projects.length;
   if (n < 2) return;
-  globalActiveIndex.value = (((globalActiveIndex.value + steps) % n) + n) % n;
+  console.log(
+    "shifting projects by steps:",
+    steps,
+    "Current selectedProjectIndex:",
+    selectedProjectIndex.value,
+    "Total projects:",
+    n,
+  );
 
-  const sliderItems = wrapForSlider(
+  const newSelectedIndex = (((selectedProjectIndex.value + steps) % n) + n) % n;
+
+  selectedProjectIndex.value = newSelectedIndex;
+
+  const itemsForSlider = wrapForSlider(
     props.projects,
-    globalActiveIndex.value,
+    newSelectedIndex,
     effectiveWindowSize.value,
   );
-  projects.value = applyProgressStyles(sliderItems, 0);
+  sliderItems.value = applyProgressStyles(itemsForSlider, 0);
 }
 
 function finishWithSnap(initialVelocity = 0) {
@@ -298,6 +316,8 @@ function finishWithSnap(initialVelocity = 0) {
   const targetPosition = Math.round(dragProgress.value);
   let springVelocity = initialVelocity;
   lastInertiaTs.value = null;
+
+  console.log("Finishing with snap to target position:", targetPosition);
 
   const snapTick = (ts: number) => {
     if (lastInertiaTs.value === null) {
@@ -315,7 +335,10 @@ function finishWithSnap(initialVelocity = 0) {
     dragProgress.value += springVelocity * dt;
     inertiaVelocity.value = springVelocity;
 
-    projects.value = applyProgressStyles(projects.value, dragProgress.value);
+    sliderItems.value = applyProgressStyles(
+      sliderItems.value,
+      dragProgress.value,
+    );
 
     const isSettled =
       Math.abs(displacement) < snapStopEpsilon &&
@@ -323,9 +346,13 @@ function finishWithSnap(initialVelocity = 0) {
 
     if (isSettled) {
       if (targetPosition !== 0) {
+        console.log(
+          "Snap completed, shifting projects to final position:",
+          targetPosition,
+        );
         shiftProjectsBy(targetPosition);
       } else {
-        projects.value = applyProgressStyles(projects.value, 0);
+        sliderItems.value = applyProgressStyles(sliderItems.value, 0);
       }
 
       dragProgress.value = 0;
@@ -355,6 +382,7 @@ function startInertia(inertiaVelocityValue: number) {
     if (lastInertiaTs.value === null) {
       lastInertiaTs.value = ts;
     }
+    console.log("Shifting right due to inertia");
 
     const dt = ts - (lastInertiaTs.value ?? ts);
     lastInertiaTs.value = ts;
@@ -371,9 +399,13 @@ function startInertia(inertiaVelocityValue: number) {
       shiftProjectsBy(-1);
       dragProgress.value += 1;
     }
-    projects.value = applyProgressStyles(projects.value, dragProgress.value);
+    sliderItems.value = applyProgressStyles(
+      sliderItems.value,
+      dragProgress.value,
+    );
 
     if (Math.abs(inertiaVelocity.value) <= minInertiaVelocity) {
+      console.log("Inertia stopped, finishing with snap");
       finishWithSnap(inertiaVelocity.value);
       return;
     }
@@ -390,10 +422,10 @@ function getShiftedProjectsBy(steps: number, projects: Project[]) {
   const totalProjects = projects.length;
 
   const previewIndex =
-    (((globalActiveIndex.value + steps) % totalProjects) + totalProjects) %
+    (((selectedProjectIndex.value + steps) % totalProjects) + totalProjects) %
     totalProjects;
 
-  globalActiveIndex.value = previewIndex;
+  selectedProjectIndex.value = previewIndex;
   return wrapForSlider(projects, previewIndex, effectiveWindowSize.value);
 }
 
@@ -597,7 +629,7 @@ function stopInertia() {
       style="mask-image: linear-gradient(to right, transparent, #000 50%)"
     >
       <div class="grid row-start-1 col-start-2 w-full">
-        <template v-for="(item, index) in projects" :key="item.id">
+        <template v-for="(item, index) in sliderItems" :key="item.id">
           <div
             class="grid row-start-1 col-start-1"
             :style="{
@@ -652,7 +684,7 @@ function stopInertia() {
     <!-- Description-->
     <div
       class="lg:container lg:col-start-1 lg:row-start-1 px-4 mx-auto"
-      :style="{ zIndex: `${projects.length * 2 + 10}` }"
+      :style="{ zIndex: `${sliderItems.length * 2 + 10}` }"
     >
       <div
         class="flex flex-col justify-between h-full max-w-prose lg:max-w-60 w-full mx-auto lg:mx-0"
@@ -687,7 +719,7 @@ function stopInertia() {
 
             <slot
               name="description"
-              :selectedItemIndex="globalActiveIndex"
+              :selectedItemIndex="selectedProjectIndex"
             ></slot>
 
             <button
@@ -716,8 +748,6 @@ function stopInertia() {
               </span>
             </button>
           </div>
-
-          <div class="self-center lg:self-start"></div>
         </div>
 
         <div class="hidden lg:flex justify-between mt-5">
