@@ -148,8 +148,7 @@ function removeProject() {
   <div
     class="flex min-h-screen flex-col items-center bg-neutral-100 dark:bg-neutral-900 dark:text-neutral-300"
   >
-    <div class="container flex p-4 gap-4 items-center justify-end"> 
-      selectedProjectIndex: {{ selectedProjectIndex }}
+    <div class="container flex flex-wrap p-4 gap-4 items-center justify-end"> 
       <ClientOnly>
         <DarkSwitch />
       </ClientOnly>
