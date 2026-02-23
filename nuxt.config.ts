@@ -9,7 +9,12 @@ export default defineNuxtConfig({
       enabled: true,
     },
   },
-  modules: ["@nuxt/image", "@nuxtjs/tailwindcss", "@vueuse/nuxt"],
+  modules: [
+    "@nuxt/image",
+    "@nuxtjs/tailwindcss",
+    "@vueuse/nuxt",
+    "@nuxt/test-utils/module",
+  ],
   tailwindcss: {
     config: {
       darkMode: "class",

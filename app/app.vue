@@ -16,7 +16,6 @@ const selectedProjectIndex = ref(0);
 
 const renderLimit = ref(10);
 
-
 const randomWords = [
   "awesome",
   "super",
@@ -114,24 +113,25 @@ const projects = ref<Project[]>([
   },
 ]);
 
-const biggestDescriptionAndTitle= computed(() => {
-  return projects.value.reduce((acc, project) => {
-    const titleLength = project.title.length;
-    const descriptionLength = project.description.length;
+const biggestDescriptionAndTitle = computed(() => {
+  return projects.value.reduce(
+    (acc, project) => {
+      const titleLength = project.title.length;
+      const descriptionLength = project.description.length;
 
-    if (titleLength > acc.title.length) {
-      acc.title = project.title;
-    }
+      if (titleLength > acc.title.length) {
+        acc.title = project.title;
+      }
 
-    if (descriptionLength > acc.description.length) {
-      acc.description = project.description;
-    }
+      if (descriptionLength > acc.description.length) {
+        acc.description = project.description;
+      }
 
-    return acc;
-  }, { title: "", description: "" });
+      return acc;
+    },
+    { title: "", description: "" },
+  );
 });
-
-
 
 function addProject() {
   projects.value.push(createProject(projects.value.length));
@@ -141,14 +141,13 @@ function removeProject() {
   if (projects.value.length <= 1) return;
   projects.value.pop();
 }
-
 </script>
 
 <template>
   <div
     class="flex min-h-screen flex-col items-center bg-neutral-100 dark:bg-neutral-900 dark:text-neutral-300"
   >
-    <div class="container flex flex-wrap p-4 gap-4 items-center justify-end"> 
+    <div class="container flex flex-wrap p-4 gap-4 items-center justify-end">
       <ClientOnly>
         <DarkSwitch />
       </ClientOnly>
@@ -215,33 +214,6 @@ function removeProject() {
 
     <!-- Heading End-->
 
-    <PortfolioSlider
-      v-model:selectedProjectIndex="selectedProjectIndex"
-      :projects="projects"
-      :renderLimit="renderLimit"
-    >
-      <template #description>
-        <div class="text-sm text-neutral-600 dark:text-neutral-300">
-          <div
-            class="grid grid-rows-[auto_1fr] lg:mt-8 text-2xl gap-2 select-none"
-          >
-            <div class="invisible  lg:mt-8 text-2xl font-semibold row-start-1 col-start-1">
-              {{ biggestDescriptionAndTitle.title }}
-            </div>
-            <div class="lg:mt-8 text-2xl font-semibold row-start-1 col-start-1">
-              {{ projects[selectedProjectIndex]?.title }}
-            </div>
-            <div class="invisible  text-base md:text-xl row-start-2 col-start-1 text-neutral-600 dark:text-neutral-300"">
-              {{ biggestDescriptionAndTitle.description }}
-            </div>
-            <div
-              class="text-base md:text-xl row-start-2 col-start-1 text-neutral-600 dark:text-neutral-300"
-            >
-              {{ projects[selectedProjectIndex]?.description }}
-            </div>
-          </div>
-        </div>
-      </template>
-    </PortfolioSlider>
+    <PortfolioSlider> </PortfolioSlider>
   </div>
 </template>
