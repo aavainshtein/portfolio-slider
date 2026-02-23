@@ -165,29 +165,47 @@ export function useSliderStateMachine(
 
       case "inertia":
         switch (event.type) {
-          case "POINTER_DOWN":
-            {
-              state.value = {
-                type: "pressed",
-                // will cal later
-                frozenProgress: 0,
-              };
-            }
+          case "POINTER_DOWN": {
+            state.value = {
+              type: "pressed",
+              // will cal later
+              frozenProgress: 0,
+            };
             return;
+          }
+
+          case "BUTTON_PRESS": {
+            state.value = {
+              type: "inertia",
+              velocity:
+                event.direction * state.value.velocity + state.value.velocity,
+            };
+            return;
+          }
         }
+        return;
 
       case "snapping":
         switch (event.type) {
-          case "POINTER_DOWN":
-            {
-              state.value = {
-                type: "pressed",
-                // will cal later
-                frozenProgress: 0,
-              };
-            }
+          case "POINTER_DOWN": {
+            state.value = {
+              type: "pressed",
+              // will cal later
+              frozenProgress: 0,
+            };
             return;
+          }
+
+          case "BUTTON_PRESS": {
+            state.value = {
+              type: "inertia",
+              velocity: event.direction * 0.01,
+            };
+
+            return;
+          }
         }
+        return;
     }
   }
 

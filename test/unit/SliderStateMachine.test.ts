@@ -152,6 +152,24 @@ describe("Slider State Machine", () => {
       send({ type: "POINTER_DOWN" });
       expect(state.value.type).toBe("pressed");
     });
+
+    it("button press -> inertia with new velocity", () => {
+      const projects = ref(makeProjects(5));
+      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+
+      send({ type: "POINTER_DOWN" });
+      send({ type: "DRAG_MOVE", movementX: -50, pixelsPerStep: 100, dirY: 0 });
+      send({ type: "POINTER_UP", releaseVelocity: 40 });
+
+      expect(state.value.type).toBe("inertia");
+
+      send({ type: "BUTTON_PRESS", direction: -1 });
+
+      expect(state.value.type).toBe("inertia");
+      const velocity = (state.value as { type: "inertia"; velocity: number })
+        .velocity;
+      expect(velocity).toBeLessThan(40);
+    });
   });
 
   describe("from snapping state", () => {
@@ -167,6 +185,20 @@ describe("Slider State Machine", () => {
 
       send({ type: "POINTER_DOWN" });
       expect(state.value.type).toBe("pressed");
+    });
+
+    it("BUTTON_PRESS -> inertia with new velocity", () => {
+      const projects = ref(makeProjects(5));
+      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+
+      send({ type: "POINTER_DOWN" });
+      send({ type: "DRAG_MOVE", movementX: -50, pixelsPerStep: 100, dirY: 0 });
+      send({ type: "POINTER_UP", releaseVelocity: 0 });
+
+      expect(state.value.type).toBe("snapping");
+
+      send({ type: "BUTTON_PRESS", direction: 1 });
+      expect(state.value.type).toBe("inertia");
     });
   });
 });
