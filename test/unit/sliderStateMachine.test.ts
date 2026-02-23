@@ -1,6 +1,6 @@
 import { ref } from "vue";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { useSliderStateMachine } from "../../app/composables/UseSliderStateMachine";
+import { useSliderStateMachine } from "../../app/composables/useSliderStateMachine";
 import { makeProjects, mockRAF } from "../helpers";
 import type { SliderItem } from "../../app/composables/useSliderItems";
 
