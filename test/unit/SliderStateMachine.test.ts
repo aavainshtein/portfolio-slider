@@ -1,10 +1,18 @@
 import { ref } from "vue";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { useSliderStateMachine } from "../../app/composables/UseSliderStateMachine";
-import { makeProjects } from "../helpers";
+import { makeProjects, mockRAF } from "../helpers";
 import type { SliderItem } from "../../app/composables/useSliderItems";
 
+let raf: ReturnType<typeof mockRAF>;
+
 describe("Slider State Machine", () => {
+  beforeEach(() => {
+    raf = mockRAF();
+  });
+  afterEach(() => {
+    raf.restore();
+  });
   describe("from idle state", () => {
     it("initial state should be idle", () => {
       const { state } = useSliderStateMachine(ref([]), ref(undefined));
@@ -80,7 +88,7 @@ describe("Slider State Machine", () => {
       const { state, send } = useSliderStateMachine(projects, ref(undefined));
       send({ type: "POINTER_DOWN" });
       send({ type: "POINTER_UP", releaseVelocity: 0 });
-      expect(state.value).toEqual({ type: "idle" });
+      expect(state.value.type).toEqual("snapping");
     });
   });
 
@@ -170,6 +178,20 @@ describe("Slider State Machine", () => {
         .velocity;
       expect(velocity).toBeLessThan(40);
     });
+
+    it("inertia eventually settles to idle (via snapping)", () => {
+      const projects = ref(makeProjects(5));
+      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+
+      send({ type: "POINTER_DOWN" });
+      send({ type: "DRAG_MOVE", movementX: -50, pixelsPerStep: 100, dirY: 0 });
+      send({ type: "POINTER_UP", releaseVelocity: 40 });
+      expect(state.value.type).toBe("inertia");
+
+      // Advance enough frames for velocity to decay and snap to settle
+      raf.advanceFrames(1000);
+      expect(state.value.type).toBe("idle");
+    });
   });
 
   describe("from snapping state", () => {
@@ -199,6 +221,20 @@ describe("Slider State Machine", () => {
 
       send({ type: "BUTTON_PRESS", direction: 1 });
       expect(state.value.type).toBe("inertia");
+    });
+
+    it("snapping decays to idle on its own", () => {
+      const projects = ref(makeProjects(5));
+      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+
+      send({ type: "POINTER_DOWN" });
+      send({ type: "DRAG_MOVE", movementX: -50, pixelsPerStep: 100, dirY: 0 });
+      send({ type: "POINTER_UP", releaseVelocity: 0 });
+      expect(state.value.type).toBe("snapping");
+
+      raf.advanceFrames(600);
+
+      expect(state.value.type).toBe("idle");
     });
   });
 });

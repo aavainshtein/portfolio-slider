@@ -29,25 +29,25 @@ type SliderState =
       type: "inertia";
       /** Текущая скорость (слотов/мс) — затухает каждый кадр */
       velocity: number;
-      // /** Дробная часть прогресса */
-      // progress: number;
-      // /** ID requestAnimationFrame — нужен для cancelAnimationFrame при прерывании */
-      // frameId: number;
-      // /** Timestamp предыдущего кадра (null в первом кадре) */
-      // lastTs: number | null;
+      /** Дробная часть прогресса */
+      progress: number;
+      /** ID requestAnimationFrame — нужен для cancelAnimationFrame при прерывании */
+      frameId: number;
+      /** Timestamp предыдущего кадра (null в первом кадре) */
+      lastTs: number | null;
     }
   | {
       type: "snapping";
       /** Скорость пружины (слотов/с) */
-      // velocity: number;
-      // /** Текущий прогресс — приближается к target */
-      // progress: number;
-      // /** Целевая позиция (ближайшее целое), к которой пружина тянет */
-      // target: number;
-      // /** ID requestAnimationFrame */
-      // frameId: number;
-      // /** Timestamp предыдущего кадра */
-      // lastTs: number | null;
+      velocity: number;
+      /** Текущий прогресс — приближается к target */
+      progress: number;
+      /** Целевая позиция (ближайшее целое), к которой пружина тянет */
+      target: number;
+      /** ID requestAnimationFrame */
+      frameId: number;
+      /** Timestamp предыдущего кадра */
+      lastTs: number | null;
     };
 
 // --- Events ---
@@ -75,6 +75,18 @@ type SliderEvent =
       direction: 1 | -1;
     };
 
+const PHYSICS = {
+  velocityInfluence: 1.35,
+  maxInertiaVelocity: 0.035,
+  inertiaDamping: 0.94,
+  minInertiaVelocity: 0.002,
+  buttonImpulseVelocity: 0.005,
+  snapSpringStiffness: 500,
+  snapSpringDamping: 20,
+  snapStopEpsilon: 0.002,
+  snapStopVelocity: 0.01,
+} as const;
+
 export function useSliderStateMachine(
   projects: Ref<Project[]>,
   renderLimit: Ref<number | undefined>,
@@ -96,6 +108,9 @@ export function useSliderStateMachine(
             state.value = {
               type: "inertia",
               velocity: event.direction * 0.01,
+              progress: 0,
+              frameId: 0,
+              lastTs: null,
             };
             return;
           }
@@ -122,7 +137,7 @@ export function useSliderStateMachine(
 
           case "POINTER_UP": {
             if (event.releaseVelocity === 0) {
-              state.value = { type: "idle" };
+              startSnapLoop(state.value.frozenProgress, 0);
               return;
             }
             return;
@@ -149,16 +164,18 @@ export function useSliderStateMachine(
 
           case "POINTER_UP": {
             if (event.releaseVelocity === 0) {
-              state.value = { type: "snapping" };
+              startSnapLoop(state.value.progress, 0);
               return;
             }
             if (event.releaseVelocity !== 0) {
-              state.value = {
-                type: "inertia",
-                velocity: event.releaseVelocity,
-              };
+              startInertiaLoop(
+                event.releaseVelocity,
+                state.value.baseOffset +
+                  state.value.stepOffset +
+                  state.value.progress,
+              );
+              return;
             }
-            return;
           }
         }
         return;
@@ -175,14 +192,17 @@ export function useSliderStateMachine(
           }
 
           case "BUTTON_PRESS": {
-            state.value = {
-              type: "inertia",
-              velocity:
-                event.direction * state.value.velocity + state.value.velocity,
-            };
+            const impulse = event.direction * 0.01;
+            const maxV = 0.035;
+            const newVelocity = Math.max(
+              -maxV,
+              Math.min(maxV, state.value.velocity + impulse),
+            );
+            state.value = { ...state.value, velocity: newVelocity };
             return;
           }
         }
+
         return;
 
       case "snapping":
@@ -200,6 +220,9 @@ export function useSliderStateMachine(
             state.value = {
               type: "inertia",
               velocity: event.direction * 0.01,
+              progress: 0,
+              frameId: 0,
+              lastTs: null,
             };
 
             return;
@@ -207,6 +230,96 @@ export function useSliderStateMachine(
         }
         return;
     }
+  }
+
+  function startInertiaLoop(velocity: number, progress: number) {
+    const tick = (ts: number) => {
+      const currentState = state.value;
+      if (currentState.type !== "inertia") return;
+
+      const lastTs = currentState.lastTs ?? ts;
+      const dt = ts - lastTs;
+
+      const dampingFactor = Math.pow(0.94, dt / 16.67);
+      const newVelocity = currentState.velocity * dampingFactor;
+      const newProgress = currentState.progress + newVelocity * dt;
+
+      if (Math.abs(newVelocity) <= 0.002) {
+        startSnapLoop(newProgress, 0);
+        return;
+      }
+
+      const frameId = requestAnimationFrame(tick);
+      state.value = {
+        type: "inertia",
+        velocity: newVelocity,
+        progress: newProgress,
+        frameId,
+        lastTs: ts,
+      };
+    };
+
+    const frameId = requestAnimationFrame(tick);
+    state.value = {
+      type: "inertia",
+      velocity,
+      progress,
+      frameId,
+      lastTs: null,
+    };
+  }
+
+  function startSnapLoop(progress: number, initialVelocity: number) {
+    const tick = (ts: number) => {
+      const currentState = state.value;
+      if (currentState.type !== "snapping") return;
+
+      const lastTs = currentState.lastTs ?? ts;
+      const dt = (ts - lastTs) / 1000;
+
+      const displacement = currentState.progress - currentState.target;
+      const acceleration =
+        -PHYSICS.snapSpringStiffness * displacement -
+        PHYSICS.snapSpringDamping * currentState.velocity;
+      const velocity = currentState.velocity + acceleration * dt;
+      const newProgress = currentState.progress + velocity * dt;
+
+      const isSettled =
+        Math.abs(displacement) < PHYSICS.snapStopEpsilon &&
+        Math.abs(velocity) < PHYSICS.snapStopVelocity;
+
+      if (isSettled) {
+        // Transition to idle
+        state.value = { type: "idle" };
+        return;
+      }
+
+      const frameId = requestAnimationFrame(tick);
+      state.value = {
+        type: "snapping",
+        velocity: velocity,
+        progress: newProgress,
+        target: currentState.target,
+        frameId,
+        lastTs: ts,
+      };
+    };
+
+    const frameId = requestAnimationFrame(tick);
+    console.log(
+      "Starting snap loop with progress:",
+      progress,
+      "velocity:",
+      initialVelocity,
+    );
+    state.value = {
+      type: "snapping",
+      velocity: initialVelocity,
+      progress,
+      target: Math.round(progress),
+      frameId,
+      lastTs: null,
+    };
   }
 
   return {
