@@ -20,4 +20,12 @@ export default defineNuxtConfig({
       darkMode: "class",
     },
   },
+  typescript: {
+    tsConfig: {
+      include: [
+        // this path is relative to the generated .nuxt/tsconfig.json
+        "../test/unit/**/*",
+      ],
+    },
+  },
 });
