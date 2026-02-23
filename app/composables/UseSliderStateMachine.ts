@@ -105,13 +105,10 @@ export function useSliderStateMachine(
           case "BUTTON_PRESS": {
             if (projects.value.length === 0) return;
 
-            state.value = {
-              type: "inertia",
-              velocity: event.direction * 0.01,
-              progress: 0,
-              frameId: 0,
-              lastTs: null,
-            };
+            startInertiaLoop(
+              event.direction * PHYSICS.buttonImpulseVelocity,
+              0,
+            );
             return;
           }
         }
@@ -183,20 +180,23 @@ export function useSliderStateMachine(
       case "inertia":
         switch (event.type) {
           case "POINTER_DOWN": {
+            stopAnimation();
+            const currentState = state.value;
             state.value = {
               type: "pressed",
-              // will cal later
-              frozenProgress: 0,
+              frozenProgress: currentState.progress,
             };
             return;
           }
 
           case "BUTTON_PRESS": {
-            const impulse = event.direction * 0.01;
-            const maxV = 0.035;
+            const impulse = event.direction * PHYSICS.buttonImpulseVelocity;
             const newVelocity = Math.max(
-              -maxV,
-              Math.min(maxV, state.value.velocity + impulse),
+              -PHYSICS.maxInertiaVelocity,
+              Math.min(
+                PHYSICS.maxInertiaVelocity,
+                state.value.velocity + impulse,
+              ),
             );
             state.value = { ...state.value, velocity: newVelocity };
             return;
@@ -208,22 +208,21 @@ export function useSliderStateMachine(
       case "snapping":
         switch (event.type) {
           case "POINTER_DOWN": {
+            stopAnimation();
+            const currentState = state.value;
             state.value = {
               type: "pressed",
-              // will cal later
-              frozenProgress: 0,
+              frozenProgress: currentState.progress,
             };
             return;
           }
 
           case "BUTTON_PRESS": {
-            state.value = {
-              type: "inertia",
-              velocity: event.direction * 0.01,
-              progress: 0,
-              frameId: 0,
-              lastTs: null,
-            };
+            stopAnimation();
+            startInertiaLoop(
+              event.direction * PHYSICS.buttonImpulseVelocity,
+              state.value.progress,
+            );
 
             return;
           }
@@ -306,12 +305,7 @@ export function useSliderStateMachine(
     };
 
     const frameId = requestAnimationFrame(tick);
-    console.log(
-      "Starting snap loop with progress:",
-      progress,
-      "velocity:",
-      initialVelocity,
-    );
+
     state.value = {
       type: "snapping",
       velocity: initialVelocity,
@@ -320,6 +314,13 @@ export function useSliderStateMachine(
       frameId,
       lastTs: null,
     };
+  }
+
+  function stopAnimation() {
+    const currentState = state.value;
+    if (currentState.type === "inertia" || currentState.type === "snapping") {
+      cancelAnimationFrame(currentState.frameId);
+    }
   }
 
   return {

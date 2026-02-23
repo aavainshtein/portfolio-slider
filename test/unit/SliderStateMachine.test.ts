@@ -59,6 +59,17 @@ describe("Slider State Machine", () => {
       send({ type: "BUTTON_PRESS", direction: 1 });
       expect(state.value.type).toBe("idle");
     });
+
+    it("BUTTON_PRESS init inertia that eventually settles", () => {
+      const projects = ref(makeProjects(5));
+      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+
+      send({ type: "BUTTON_PRESS", direction: 1 });
+      expect(state.value.type).toBe("inertia");
+
+      raf.advanceFrames(1000);
+      expect(state.value.type).toBe("idle");
+    });
   });
 
   describe("from pressed state", () => {
@@ -192,6 +203,28 @@ describe("Slider State Machine", () => {
       raf.advanceFrames(1000);
       expect(state.value.type).toBe("idle");
     });
+
+    it("POINTER_DOWN preserves progress as frozenProgress", () => {
+      const projects = ref(makeProjects(5));
+      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+
+      send({ type: "POINTER_DOWN" });
+      send({ type: "DRAG_MOVE", movementX: -50, pixelsPerStep: 100, dirY: 0 });
+      send({ type: "POINTER_UP", releaseVelocity: 0.01 });
+      expect(state.value.type).toBe("inertia");
+
+      raf.advanceFrames(5);
+      const currentState = state.value as { type: "inertia"; progress: number };
+      const currentProgress = currentState.progress;
+
+      send({ type: "POINTER_DOWN" });
+      expect(state.value.type).toBe("pressed");
+      const pressedState = state.value as {
+        type: "pressed";
+        frozenProgress: number;
+      };
+      expect(pressedState.frozenProgress).toBe(currentProgress);
+    });
   });
 
   describe("from snapping state", () => {
@@ -223,6 +256,22 @@ describe("Slider State Machine", () => {
       expect(state.value.type).toBe("inertia");
     });
 
+    it("BUTTON_PRESS init inertia that eventually settles", () => {
+      const projects = ref(makeProjects(5));
+      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+
+      send({ type: "POINTER_DOWN" });
+      send({ type: "DRAG_MOVE", movementX: -50, pixelsPerStep: 100, dirY: 0 });
+      send({ type: "POINTER_UP", releaseVelocity: 0 });
+      expect(state.value.type).toBe("snapping");
+
+      send({ type: "BUTTON_PRESS", direction: 1 });
+      expect(state.value.type).toBe("inertia");
+
+      raf.advanceFrames(1000);
+      expect(state.value.type).toBe("idle");
+    });
+
     it("snapping decays to idle on its own", () => {
       const projects = ref(makeProjects(5));
       const { state, send } = useSliderStateMachine(projects, ref(undefined));
@@ -235,6 +284,30 @@ describe("Slider State Machine", () => {
       raf.advanceFrames(600);
 
       expect(state.value.type).toBe("idle");
+    });
+
+    it("POINTER_DOWN preserves progress as frozenProgress", () => {
+      const projects = ref(makeProjects(5));
+      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+
+      send({ type: "POINTER_DOWN" });
+      send({ type: "DRAG_MOVE", movementX: -50, pixelsPerStep: 100, dirY: 0 });
+      send({ type: "POINTER_UP", releaseVelocity: 0 });
+      expect(state.value.type).toBe("snapping");
+
+      raf.advanceFrames(5);
+      const currentState = state.value as {
+        type: "snapping";
+        progress: number;
+      };
+      const currentProgress = currentState.progress;
+      send({ type: "POINTER_DOWN" });
+      expect(state.value.type).toBe("pressed");
+      const pressedState = state.value as {
+        type: "pressed";
+        frozenProgress: number;
+      };
+      expect(pressedState.frozenProgress).toBe(currentProgress);
     });
   });
 });
