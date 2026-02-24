@@ -1,15 +1,15 @@
 export type Project = {
-  id?: string | number;
-  slug: string;
-  title: string;
-  description: string;
+  id?: string | number
+  slug: string
+  title: string
+  description: string
   img: {
-    src: string;
-    alt: string;
-    width: number;
-    height: number;
-  };
-};
+    src: string
+    alt: string
+    width: number
+    height: number
+  }
+}
 
 export function makeProjects(count: number): Project[] {
   return Array.from({ length: count }, (_, i) => ({
@@ -23,39 +23,39 @@ export function makeProjects(count: number): Project[] {
       width: 1920,
       height: 1080,
     },
-  }));
+  }))
 }
 
 export function mockRAF() {
-  const callbacks: Array<(ts: number) => void> = [];
-  let time = 0;
+  const callbacks: Array<(ts: number) => void> = []
+  let time = 0
 
-  const originalRAF = globalThis.requestAnimationFrame;
-  const originalCAF = globalThis.cancelAnimationFrame;
+  const originalRAF = globalThis.requestAnimationFrame
+  const originalCAF = globalThis.cancelAnimationFrame
 
   globalThis.requestAnimationFrame = (cb: FrameRequestCallback): number => {
-    callbacks.push(cb);
-    return callbacks.length;
-  };
+    callbacks.push(cb)
+    return callbacks.length
+  }
 
   globalThis.cancelAnimationFrame = (_id: number) => {
     // no-op for simplicity
-  };
+  }
 
   return {
     advanceFrames(count: number, dtMs = 16.67) {
       for (let i = 0; i < count; i++) {
-        time += dtMs;
-        const pending = callbacks.splice(0);
-        pending.forEach((cb) => cb(time));
+        time += dtMs
+        const pending = callbacks.splice(0)
+        pending.forEach((cb) => cb(time))
       }
     },
     get time() {
-      return time;
+      return time
     },
     restore() {
-      globalThis.requestAnimationFrame = originalRAF;
-      globalThis.cancelAnimationFrame = originalCAF;
+      globalThis.requestAnimationFrame = originalRAF
+      globalThis.cancelAnimationFrame = originalCAF
     },
-  };
+  }
 }

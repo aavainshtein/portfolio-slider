@@ -1,41 +1,41 @@
 <script setup lang="ts">
 export type Project = {
-  id?: string | number;
-  slug: string;
-  title: string;
-  description: string;
+  id?: string | number
+  slug: string
+  title: string
+  description: string
   img: {
-    src: string;
-    alt: string;
-    width: number;
-    height: number;
-  };
-};
+    src: string
+    alt: string
+    width: number
+    height: number
+  }
+}
 
-const selectedProjectIndex = ref(0);
+const selectedProjectIndex = ref(0)
 
-const renderLimit = ref(10);
+const renderLimit = ref(10)
 
 const randomWords = [
-  "awesome",
-  "super",
-  "amazing",
-  "fantastic",
-  "wonderful",
-  "incredible",
-  "beautiful",
-  "astounding",
-  "spectacular",
-];
+  'awesome',
+  'super',
+  'amazing',
+  'fantastic',
+  'wonderful',
+  'incredible',
+  'beautiful',
+  'astounding',
+  'spectacular',
+]
 
 function makeText(wordCount = 5) {
   return Array.from({ length: wordCount })
     .map(() => randomWords[Math.floor(Math.random() * randomWords.length)])
-    .join(" ");
+    .join(' ')
 }
 
 function createProject(index: number) {
-  const slugBase = `project-${Date.now()}-${index}`;
+  const slugBase = `project-${Date.now()}-${index}`
 
   return {
     slug: slugBase,
@@ -47,99 +47,99 @@ function createProject(index: number) {
       width: 1000,
       height: 667,
     },
-  };
+  }
 }
 
 const projects = ref<Project[]>([
   {
-    slug: "space-tacos",
-    title: "Space Tacos Delivery",
+    slug: 'space-tacos',
+    title: 'Space Tacos Delivery',
     description:
-      "An intergalactic taco delivery service powered by quantum burritos and AI-guided salsa drones. An intergalactic taco delivery service powered by quantum burritos and AI-guided salsa drones.",
+      'An intergalactic taco delivery service powered by quantum burritos and AI-guided salsa drones. An intergalactic taco delivery service powered by quantum burritos and AI-guided salsa drones.',
     img: {
-      src: "https://picsum.photos/1920/1080",
-      alt: "Space Tacos Dashboard",
+      src: 'https://picsum.photos/1920/1080',
+      alt: 'Space Tacos Dashboard',
       width: 1000,
       height: 667,
     },
   },
   {
-    slug: "cat-translator",
-    title: "Cat-to-Human Translator",
+    slug: 'cat-translator',
+    title: 'Cat-to-Human Translator',
     description:
       "Finally understand what your cat really thinks about you. Spoiler: it's not great.",
     img: {
-      src: "https://picsum.photos/seed/cat/1920/1080",
-      alt: "Cat Translator Interface",
+      src: 'https://picsum.photos/seed/cat/1920/1080',
+      alt: 'Cat Translator Interface',
       width: 1000,
       height: 667,
     },
   },
   {
-    slug: "cloud-socks",
-    title: "Cloud Socks Platform",
+    slug: 'cloud-socks',
+    title: 'Cloud Socks Platform',
     description:
-      "A revolutionary SaaS (Socks as a Service) platform that knits custom socks in the cloud and delivers them via drone.",
+      'A revolutionary SaaS (Socks as a Service) platform that knits custom socks in the cloud and delivers them via drone.',
     img: {
-      src: "https://picsum.photos/seed/socks/1920/1080",
-      alt: "Cloud Socks Analytics",
+      src: 'https://picsum.photos/seed/socks/1920/1080',
+      alt: 'Cloud Socks Analytics',
       width: 1000,
       height: 667,
     },
   },
   {
-    slug: "ai-garden",
-    title: "AI Garden Planner",
+    slug: 'ai-garden',
+    title: 'AI Garden Planner',
     description:
-      "A smart garden assistant that predicts harvest times, optimizes watering schedules, and keeps your tomatoes happy.",
+      'A smart garden assistant that predicts harvest times, optimizes watering schedules, and keeps your tomatoes happy.',
     img: {
-      src: "https://picsum.photos/seed/garden/1920/1080",
-      alt: "AI Garden Planner Overview",
+      src: 'https://picsum.photos/seed/garden/1920/1080',
+      alt: 'AI Garden Planner Overview',
       width: 1000,
       height: 667,
     },
   },
   {
-    slug: "pixel-bank",
-    title: "Pixel Bank",
+    slug: 'pixel-bank',
+    title: 'Pixel Bank',
     description:
-      "A playful fintech dashboard where every transaction is visualized as animated pixel art in real time.",
+      'A playful fintech dashboard where every transaction is visualized as animated pixel art in real time.',
     img: {
-      src: "https://picsum.photos/seed/pixel/1920/1080",
-      alt: "Pixel Bank Dashboard",
+      src: 'https://picsum.photos/seed/pixel/1920/1080',
+      alt: 'Pixel Bank Dashboard',
       width: 1000,
       height: 667,
     },
   },
-]);
+])
 
 const biggestDescriptionAndTitle = computed(() => {
   return projects.value.reduce(
     (acc, project) => {
-      const titleLength = project.title.length;
-      const descriptionLength = project.description.length;
+      const titleLength = project.title.length
+      const descriptionLength = project.description.length
 
       if (titleLength > acc.title.length) {
-        acc.title = project.title;
+        acc.title = project.title
       }
 
       if (descriptionLength > acc.description.length) {
-        acc.description = project.description;
+        acc.description = project.description
       }
 
-      return acc;
+      return acc
     },
-    { title: "", description: "" },
-  );
-});
+    { title: '', description: '' },
+  )
+})
 
 function addProject() {
-  projects.value.push(createProject(projects.value.length));
+  projects.value.push(createProject(projects.value.length))
 }
 
 function removeProject() {
-  if (projects.value.length <= 1) return;
-  projects.value.pop();
+  if (projects.value.length <= 1) return
+  projects.value.pop()
 }
 </script>
 
@@ -147,7 +147,7 @@ function removeProject() {
   <div
     class="flex min-h-screen flex-col items-center bg-neutral-100 dark:bg-neutral-900 dark:text-neutral-300"
   >
-    <div class="container flex flex-wrap p-4 gap-4 items-center justify-end">
+    <div class="container flex flex-wrap items-center justify-end gap-4 p-4">
       <ClientOnly>
         <DarkSwitch />
       </ClientOnly>
@@ -203,10 +203,10 @@ function removeProject() {
 
     <!-- Heading -->
     <div
-      class="container text-center flex flex-col items-center justify-center gap-3"
+      class="container flex flex-col items-center justify-center gap-3 text-center"
     >
       <h2 class="text-3xl font-bold">Portfolio</h2>
-      <p class="lg:mx-auto text-neutral-600 dark:text-neutral-300">
+      <p class="text-neutral-600 lg:mx-auto dark:text-neutral-300">
         Infinite slider with some animations and touch
       </p>
       <!-- indexes: {{ projects.map((item) => item.id) }} -->

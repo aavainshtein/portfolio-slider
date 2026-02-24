@@ -1,313 +1,313 @@
-import { ref } from "vue";
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { useSliderStateMachine } from "../../app/composables/useSliderStateMachine";
-import { makeProjects, mockRAF } from "../helpers";
-import type { SliderItem } from "../../app/composables/useSliderItems";
+import { ref } from 'vue'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { useSliderStateMachine } from '../../app/composables/useSliderStateMachine'
+import { makeProjects, mockRAF } from '../helpers'
+import type { SliderItem } from '../../app/composables/useSliderItems'
 
-let raf: ReturnType<typeof mockRAF>;
+let raf: ReturnType<typeof mockRAF>
 
-describe("Slider State Machine", () => {
+describe('Slider State Machine', () => {
   beforeEach(() => {
-    raf = mockRAF();
-  });
+    raf = mockRAF()
+  })
   afterEach(() => {
-    raf.restore();
-  });
-  describe("from idle state", () => {
-    it("initial state should be idle", () => {
-      const { state } = useSliderStateMachine(ref([]), ref(undefined));
-      expect(state.value).toEqual({ type: "idle" });
-    });
+    raf.restore()
+  })
+  describe('from idle state', () => {
+    it('initial state should be idle', () => {
+      const { state } = useSliderStateMachine(ref([]), ref(undefined))
+      expect(state.value).toEqual({ type: 'idle' })
+    })
 
-    it("POINTER_DOWN  -> pressed with frozenProgress = 0", () => {
-      const projects = ref(makeProjects(2));
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
-      send({ type: "POINTER_DOWN" });
-      expect(state.value).toEqual({ type: "pressed", frozenProgress: 0 });
-    });
+    it('POINTER_DOWN  -> pressed with frozenProgress = 0', () => {
+      const projects = ref(makeProjects(2))
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
+      send({ type: 'POINTER_DOWN' })
+      expect(state.value).toEqual({ type: 'pressed', frozenProgress: 0 })
+    })
 
-    it("POINTER_DOWN with 0 projects -> ignore", () => {
-      const projects = ref([]);
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
-      send({ type: "POINTER_DOWN" });
-      expect(state.value).toEqual({ type: "idle" });
-    });
+    it('POINTER_DOWN with 0 projects -> ignore', () => {
+      const projects = ref([])
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
+      send({ type: 'POINTER_DOWN' })
+      expect(state.value).toEqual({ type: 'idle' })
+    })
 
-    it("BUTTON_PRESS with direction 1 -> inertia with positive velocity", () => {
-      const projects = ref(makeProjects(5));
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
-      send({ type: "BUTTON_PRESS", direction: 1 });
-      expect(state.value.type).toBe("inertia");
-      const velocity = (state.value as { type: "inertia"; velocity: number })
-        .velocity;
-      expect(velocity).toBeGreaterThan(0);
-    });
+    it('BUTTON_PRESS with direction 1 -> inertia with positive velocity', () => {
+      const projects = ref(makeProjects(5))
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
+      send({ type: 'BUTTON_PRESS', direction: 1 })
+      expect(state.value.type).toBe('inertia')
+      const velocity = (state.value as { type: 'inertia'; velocity: number })
+        .velocity
+      expect(velocity).toBeGreaterThan(0)
+    })
 
-    it("BUTTON_PRESS with direction -1 -> inertia with negative velocity", () => {
-      const projects = ref(makeProjects(5));
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
-      send({ type: "BUTTON_PRESS", direction: -1 });
-      expect(state.value.type).toBe("inertia");
-      const velocity = (state.value as { type: "inertia"; velocity: number })
-        .velocity;
-      expect(velocity).toBeLessThan(0);
-    });
+    it('BUTTON_PRESS with direction -1 -> inertia with negative velocity', () => {
+      const projects = ref(makeProjects(5))
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
+      send({ type: 'BUTTON_PRESS', direction: -1 })
+      expect(state.value.type).toBe('inertia')
+      const velocity = (state.value as { type: 'inertia'; velocity: number })
+        .velocity
+      expect(velocity).toBeLessThan(0)
+    })
 
-    it("BUTTON_PRESS empty projects -> idle", () => {
-      const projects = ref<SliderItem[]>([]);
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
-      send({ type: "BUTTON_PRESS", direction: 1 });
-      expect(state.value.type).toBe("idle");
-    });
+    it('BUTTON_PRESS empty projects -> idle', () => {
+      const projects = ref<SliderItem[]>([])
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
+      send({ type: 'BUTTON_PRESS', direction: 1 })
+      expect(state.value.type).toBe('idle')
+    })
 
-    it("BUTTON_PRESS init inertia that eventually settles", () => {
-      const projects = ref(makeProjects(5));
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+    it('BUTTON_PRESS init inertia that eventually settles', () => {
+      const projects = ref(makeProjects(5))
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
 
-      send({ type: "BUTTON_PRESS", direction: 1 });
-      expect(state.value.type).toBe("inertia");
+      send({ type: 'BUTTON_PRESS', direction: 1 })
+      expect(state.value.type).toBe('inertia')
 
-      raf.advanceFrames(1000);
-      expect(state.value.type).toBe("idle");
-    });
-  });
+      raf.advanceFrames(1000)
+      expect(state.value.type).toBe('idle')
+    })
+  })
 
-  describe("from pressed state", () => {
-    it("DRAG_MOVE -> dragging with correct progress and offsets", () => {
-      const projects = ref(makeProjects(5));
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
-      send({ type: "POINTER_DOWN" });
-      send({ type: "DRAG_MOVE", movementX: 100, pixelsPerStep: 50, dirY: 0.2 });
-      expect(state.value.type).toEqual("dragging");
-    });
+  describe('from pressed state', () => {
+    it('DRAG_MOVE -> dragging with correct progress and offsets', () => {
+      const projects = ref(makeProjects(5))
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
+      send({ type: 'POINTER_DOWN' })
+      send({ type: 'DRAG_MOVE', movementX: 100, pixelsPerStep: 50, dirY: 0.2 })
+      expect(state.value.type).toEqual('dragging')
+    })
 
-    it("DRAG_MOVE with dirY>0.35 dont change state", () => {
-      const projects = ref(makeProjects(5));
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
-      send({ type: "POINTER_DOWN" });
+    it('DRAG_MOVE with dirY>0.35 dont change state', () => {
+      const projects = ref(makeProjects(5))
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
+      send({ type: 'POINTER_DOWN' })
       send({
-        type: "DRAG_MOVE",
+        type: 'DRAG_MOVE',
         movementX: 100,
         pixelsPerStep: 50,
         dirY: 0.36,
-      });
-      expect(state.value.type).toEqual("pressed");
-    });
+      })
+      expect(state.value.type).toEqual('pressed')
+    })
 
-    it("POINTER_UP with no velocity -> idle", () => {
-      const projects = ref(makeProjects(5));
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
-      send({ type: "POINTER_DOWN" });
-      send({ type: "POINTER_UP", releaseVelocity: 0 });
-      expect(state.value.type).toEqual("snapping");
-    });
-  });
+    it('POINTER_UP with no velocity -> idle', () => {
+      const projects = ref(makeProjects(5))
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
+      send({ type: 'POINTER_DOWN' })
+      send({ type: 'POINTER_UP', releaseVelocity: 0 })
+      expect(state.value.type).toEqual('snapping')
+    })
+  })
 
-  describe("from dragging state", () => {
-    it("DRAG_MOVE -> update progress and offsets", () => {
-      const projects = ref(makeProjects(5));
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+  describe('from dragging state', () => {
+    it('DRAG_MOVE -> update progress and offsets', () => {
+      const projects = ref(makeProjects(5))
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
 
-      send({ type: "POINTER_DOWN" });
+      send({ type: 'POINTER_DOWN' })
 
-      send({ type: "DRAG_MOVE", movementX: -50, pixelsPerStep: 100, dirY: 0 });
+      send({ type: 'DRAG_MOVE', movementX: -50, pixelsPerStep: 100, dirY: 0 })
 
-      expect(state.value.type).toBe("dragging");
+      expect(state.value.type).toBe('dragging')
 
-      const firstProgress = (state.value as { progress: number }).progress;
+      const firstProgress = (state.value as { progress: number }).progress
 
-      send({ type: "DRAG_MOVE", movementX: -80, pixelsPerStep: 100, dirY: 0 });
+      send({ type: 'DRAG_MOVE', movementX: -80, pixelsPerStep: 100, dirY: 0 })
 
-      expect(state.value.type).toBe("dragging");
+      expect(state.value.type).toBe('dragging')
 
-      const secondProgress = (state.value as { progress: number }).progress;
+      const secondProgress = (state.value as { progress: number }).progress
 
-      expect(firstProgress < secondProgress).toBe(true);
-    });
+      expect(firstProgress < secondProgress).toBe(true)
+    })
 
-    it("POINTER_UP with velocity -> inertia", () => {
-      const projects = ref(makeProjects(5));
+    it('POINTER_UP with velocity -> inertia', () => {
+      const projects = ref(makeProjects(5))
 
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
 
-      send({ type: "POINTER_DOWN" });
+      send({ type: 'POINTER_DOWN' })
 
-      send({ type: "DRAG_MOVE", movementX: -50, pixelsPerStep: 100, dirY: 0 });
+      send({ type: 'DRAG_MOVE', movementX: -50, pixelsPerStep: 100, dirY: 0 })
 
-      expect(state.value.type).toBe("dragging");
+      expect(state.value.type).toBe('dragging')
 
-      send({ type: "POINTER_UP", releaseVelocity: 40 });
+      send({ type: 'POINTER_UP', releaseVelocity: 40 })
 
-      const stateAfterRelease = { ...state.value };
+      const stateAfterRelease = { ...state.value }
 
-      expect(stateAfterRelease.type).toBe("inertia");
-    });
+      expect(stateAfterRelease.type).toBe('inertia')
+    })
 
-    it("POINTER_UP with no velocity -> snapping", () => {
-      const projects = ref(makeProjects(5));
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
-      send({ type: "POINTER_DOWN" });
+    it('POINTER_UP with no velocity -> snapping', () => {
+      const projects = ref(makeProjects(5))
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
+      send({ type: 'POINTER_DOWN' })
 
-      send({ type: "DRAG_MOVE", movementX: -50, pixelsPerStep: 100, dirY: 0 });
+      send({ type: 'DRAG_MOVE', movementX: -50, pixelsPerStep: 100, dirY: 0 })
 
-      expect(state.value.type).toBe("dragging");
+      expect(state.value.type).toBe('dragging')
 
-      send({ type: "POINTER_UP", releaseVelocity: 0 });
-      expect(state.value.type).toBe("snapping");
-    });
-  });
+      send({ type: 'POINTER_UP', releaseVelocity: 0 })
+      expect(state.value.type).toBe('snapping')
+    })
+  })
 
-  describe("from inertia state", () => {
-    it("POINTER_DOWN -> pressed (slider paused in movement)", () => {
-      const projects = ref(makeProjects(5));
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+  describe('from inertia state', () => {
+    it('POINTER_DOWN -> pressed (slider paused in movement)', () => {
+      const projects = ref(makeProjects(5))
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
 
-      send({ type: "POINTER_DOWN" });
-      send({ type: "DRAG_MOVE", movementX: -50, pixelsPerStep: 100, dirY: 0 });
-      send({ type: "POINTER_UP", releaseVelocity: 40 });
+      send({ type: 'POINTER_DOWN' })
+      send({ type: 'DRAG_MOVE', movementX: -50, pixelsPerStep: 100, dirY: 0 })
+      send({ type: 'POINTER_UP', releaseVelocity: 40 })
 
-      expect(state.value.type).toBe("inertia");
+      expect(state.value.type).toBe('inertia')
 
-      send({ type: "POINTER_DOWN" });
-      expect(state.value.type).toBe("pressed");
-    });
+      send({ type: 'POINTER_DOWN' })
+      expect(state.value.type).toBe('pressed')
+    })
 
-    it("button press -> inertia with new velocity", () => {
-      const projects = ref(makeProjects(5));
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+    it('button press -> inertia with new velocity', () => {
+      const projects = ref(makeProjects(5))
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
 
-      send({ type: "POINTER_DOWN" });
-      send({ type: "DRAG_MOVE", movementX: -50, pixelsPerStep: 100, dirY: 0 });
-      send({ type: "POINTER_UP", releaseVelocity: 40 });
+      send({ type: 'POINTER_DOWN' })
+      send({ type: 'DRAG_MOVE', movementX: -50, pixelsPerStep: 100, dirY: 0 })
+      send({ type: 'POINTER_UP', releaseVelocity: 40 })
 
-      expect(state.value.type).toBe("inertia");
+      expect(state.value.type).toBe('inertia')
 
-      send({ type: "BUTTON_PRESS", direction: -1 });
+      send({ type: 'BUTTON_PRESS', direction: -1 })
 
-      expect(state.value.type).toBe("inertia");
-      const velocity = (state.value as { type: "inertia"; velocity: number })
-        .velocity;
-      expect(velocity).toBeLessThan(40);
-    });
+      expect(state.value.type).toBe('inertia')
+      const velocity = (state.value as { type: 'inertia'; velocity: number })
+        .velocity
+      expect(velocity).toBeLessThan(40)
+    })
 
-    it("inertia eventually settles to idle (via snapping)", () => {
-      const projects = ref(makeProjects(5));
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+    it('inertia eventually settles to idle (via snapping)', () => {
+      const projects = ref(makeProjects(5))
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
 
-      send({ type: "POINTER_DOWN" });
-      send({ type: "DRAG_MOVE", movementX: -50, pixelsPerStep: 100, dirY: 0 });
-      send({ type: "POINTER_UP", releaseVelocity: 40 });
-      expect(state.value.type).toBe("inertia");
+      send({ type: 'POINTER_DOWN' })
+      send({ type: 'DRAG_MOVE', movementX: -50, pixelsPerStep: 100, dirY: 0 })
+      send({ type: 'POINTER_UP', releaseVelocity: 40 })
+      expect(state.value.type).toBe('inertia')
 
       // Advance enough frames for velocity to decay and snap to settle
-      raf.advanceFrames(1000);
-      expect(state.value.type).toBe("idle");
-    });
+      raf.advanceFrames(1000)
+      expect(state.value.type).toBe('idle')
+    })
 
-    it("POINTER_DOWN preserves progress as frozenProgress", () => {
-      const projects = ref(makeProjects(5));
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+    it('POINTER_DOWN preserves progress as frozenProgress', () => {
+      const projects = ref(makeProjects(5))
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
 
-      send({ type: "POINTER_DOWN" });
-      send({ type: "DRAG_MOVE", movementX: -50, pixelsPerStep: 100, dirY: 0 });
-      send({ type: "POINTER_UP", releaseVelocity: 0.01 });
-      expect(state.value.type).toBe("inertia");
+      send({ type: 'POINTER_DOWN' })
+      send({ type: 'DRAG_MOVE', movementX: -50, pixelsPerStep: 100, dirY: 0 })
+      send({ type: 'POINTER_UP', releaseVelocity: 0.01 })
+      expect(state.value.type).toBe('inertia')
 
-      raf.advanceFrames(5);
-      const currentState = state.value as { type: "inertia"; progress: number };
-      const currentProgress = currentState.progress;
+      raf.advanceFrames(5)
+      const currentState = state.value as { type: 'inertia'; progress: number }
+      const currentProgress = currentState.progress
 
-      send({ type: "POINTER_DOWN" });
-      expect(state.value.type).toBe("pressed");
+      send({ type: 'POINTER_DOWN' })
+      expect(state.value.type).toBe('pressed')
       const pressedState = state.value as {
-        type: "pressed";
-        frozenProgress: number;
-      };
-      expect(pressedState.frozenProgress).toBe(currentProgress);
-    });
-  });
+        type: 'pressed'
+        frozenProgress: number
+      }
+      expect(pressedState.frozenProgress).toBe(currentProgress)
+    })
+  })
 
-  describe("from snapping state", () => {
-    it("POINTER_DOWN -> pressed (slider paused in movement)", () => {
-      const projects = ref(makeProjects(5));
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+  describe('from snapping state', () => {
+    it('POINTER_DOWN -> pressed (slider paused in movement)', () => {
+      const projects = ref(makeProjects(5))
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
 
-      send({ type: "POINTER_DOWN" });
-      send({ type: "DRAG_MOVE", movementX: -50, pixelsPerStep: 100, dirY: 0 });
-      send({ type: "POINTER_UP", releaseVelocity: 0 });
+      send({ type: 'POINTER_DOWN' })
+      send({ type: 'DRAG_MOVE', movementX: -50, pixelsPerStep: 100, dirY: 0 })
+      send({ type: 'POINTER_UP', releaseVelocity: 0 })
 
-      expect(state.value.type).toBe("snapping");
+      expect(state.value.type).toBe('snapping')
 
-      send({ type: "POINTER_DOWN" });
-      expect(state.value.type).toBe("pressed");
-    });
+      send({ type: 'POINTER_DOWN' })
+      expect(state.value.type).toBe('pressed')
+    })
 
-    it("BUTTON_PRESS -> inertia with new velocity", () => {
-      const projects = ref(makeProjects(5));
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+    it('BUTTON_PRESS -> inertia with new velocity', () => {
+      const projects = ref(makeProjects(5))
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
 
-      send({ type: "POINTER_DOWN" });
-      send({ type: "DRAG_MOVE", movementX: -50, pixelsPerStep: 100, dirY: 0 });
-      send({ type: "POINTER_UP", releaseVelocity: 0 });
+      send({ type: 'POINTER_DOWN' })
+      send({ type: 'DRAG_MOVE', movementX: -50, pixelsPerStep: 100, dirY: 0 })
+      send({ type: 'POINTER_UP', releaseVelocity: 0 })
 
-      expect(state.value.type).toBe("snapping");
+      expect(state.value.type).toBe('snapping')
 
-      send({ type: "BUTTON_PRESS", direction: 1 });
-      expect(state.value.type).toBe("inertia");
-    });
+      send({ type: 'BUTTON_PRESS', direction: 1 })
+      expect(state.value.type).toBe('inertia')
+    })
 
-    it("BUTTON_PRESS init inertia that eventually settles", () => {
-      const projects = ref(makeProjects(5));
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+    it('BUTTON_PRESS init inertia that eventually settles', () => {
+      const projects = ref(makeProjects(5))
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
 
-      send({ type: "POINTER_DOWN" });
-      send({ type: "DRAG_MOVE", movementX: -50, pixelsPerStep: 100, dirY: 0 });
-      send({ type: "POINTER_UP", releaseVelocity: 0 });
-      expect(state.value.type).toBe("snapping");
+      send({ type: 'POINTER_DOWN' })
+      send({ type: 'DRAG_MOVE', movementX: -50, pixelsPerStep: 100, dirY: 0 })
+      send({ type: 'POINTER_UP', releaseVelocity: 0 })
+      expect(state.value.type).toBe('snapping')
 
-      send({ type: "BUTTON_PRESS", direction: 1 });
-      expect(state.value.type).toBe("inertia");
+      send({ type: 'BUTTON_PRESS', direction: 1 })
+      expect(state.value.type).toBe('inertia')
 
-      raf.advanceFrames(1000);
-      expect(state.value.type).toBe("idle");
-    });
+      raf.advanceFrames(1000)
+      expect(state.value.type).toBe('idle')
+    })
 
-    it("snapping decays to idle on its own", () => {
-      const projects = ref(makeProjects(5));
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+    it('snapping decays to idle on its own', () => {
+      const projects = ref(makeProjects(5))
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
 
-      send({ type: "POINTER_DOWN" });
-      send({ type: "DRAG_MOVE", movementX: -50, pixelsPerStep: 100, dirY: 0 });
-      send({ type: "POINTER_UP", releaseVelocity: 0 });
-      expect(state.value.type).toBe("snapping");
+      send({ type: 'POINTER_DOWN' })
+      send({ type: 'DRAG_MOVE', movementX: -50, pixelsPerStep: 100, dirY: 0 })
+      send({ type: 'POINTER_UP', releaseVelocity: 0 })
+      expect(state.value.type).toBe('snapping')
 
-      raf.advanceFrames(600);
+      raf.advanceFrames(600)
 
-      expect(state.value.type).toBe("idle");
-    });
+      expect(state.value.type).toBe('idle')
+    })
 
-    it("POINTER_DOWN preserves progress as frozenProgress", () => {
-      const projects = ref(makeProjects(5));
-      const { state, send } = useSliderStateMachine(projects, ref(undefined));
+    it('POINTER_DOWN preserves progress as frozenProgress', () => {
+      const projects = ref(makeProjects(5))
+      const { state, send } = useSliderStateMachine(projects, ref(undefined))
 
-      send({ type: "POINTER_DOWN" });
-      send({ type: "DRAG_MOVE", movementX: -50, pixelsPerStep: 100, dirY: 0 });
-      send({ type: "POINTER_UP", releaseVelocity: 0 });
-      expect(state.value.type).toBe("snapping");
+      send({ type: 'POINTER_DOWN' })
+      send({ type: 'DRAG_MOVE', movementX: -50, pixelsPerStep: 100, dirY: 0 })
+      send({ type: 'POINTER_UP', releaseVelocity: 0 })
+      expect(state.value.type).toBe('snapping')
 
-      raf.advanceFrames(5);
+      raf.advanceFrames(5)
       const currentState = state.value as {
-        type: "snapping";
-        progress: number;
-      };
-      const currentProgress = currentState.progress;
-      send({ type: "POINTER_DOWN" });
-      expect(state.value.type).toBe("pressed");
+        type: 'snapping'
+        progress: number
+      }
+      const currentProgress = currentState.progress
+      send({ type: 'POINTER_DOWN' })
+      expect(state.value.type).toBe('pressed')
       const pressedState = state.value as {
-        type: "pressed";
-        frozenProgress: number;
-      };
-      expect(pressedState.frozenProgress).toBe(currentProgress);
-    });
-  });
-});
+        type: 'pressed'
+        frozenProgress: number
+      }
+      expect(pressedState.frozenProgress).toBe(currentProgress)
+    })
+  })
+})

@@ -1,27 +1,27 @@
-import type { SliderItem } from "./useSliderItems";
+import type { SliderItem } from './useSliderItems'
 
 export type NumericStyle = {
-  opacity: number;
-  rotateY: number;
-  translateX: number;
-  translateZ: number;
-  scale: number;
-  blur: number;
-  containerTranslateX: number;
-  zIndex: number;
-};
+  opacity: number
+  rotateY: number
+  translateX: number
+  translateZ: number
+  scale: number
+  blur: number
+  containerTranslateX: number
+  zIndex: number
+}
 
 export function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
+  return Math.min(Math.max(value, min), max)
 }
 
 export function lerp(start: number, end: number, value: number) {
-  return start + (end - start) * value;
+  return start + (end - start) * value
 }
 
 function getBaseParams(windowSize: number) {
-  const length = windowSize;
-  const maxDepth = Math.min(length * 40, 500);
+  const length = windowSize
+  const maxDepth = Math.min(length * 40, 500)
   return {
     length,
     last: length - 1 || 1,
@@ -29,7 +29,7 @@ function getBaseParams(windowSize: number) {
     maxDepth,
     minScale: clamp(1 - length * 0.05, 0.4, 0.9),
     maxBlur: 60,
-  };
+  }
 }
 
 function getVisibleStyleValues(
@@ -37,8 +37,8 @@ function getVisibleStyleValues(
   windowSize: number,
 ): NumericStyle {
   const { length, last, maxRotate, maxDepth, minScale, maxBlur } =
-    getBaseParams(windowSize);
-  const positionRatio = index / last;
+    getBaseParams(windowSize)
+  const positionRatio = index / last
 
   return {
     opacity: 100,
@@ -49,7 +49,7 @@ function getVisibleStyleValues(
     blur: maxBlur * positionRatio,
     containerTranslateX: (50 / (length || 1)) * index,
     zIndex: length - index + 2,
-  };
+  }
 }
 
 export function buildStyle(styleValues: NumericStyle) {
@@ -69,10 +69,10 @@ export function buildStyle(styleValues: NumericStyle) {
       zIndex: `${Math.round(styleValues.zIndex)}`,
       transform: `translateX(${styleValues.containerTranslateX}%)`,
     },
-  };
+  }
 }
 
-function interpolateStyle(
+export function interpolateStyle(
   from: NumericStyle,
   to: NumericStyle,
   value: number,
@@ -90,7 +90,7 @@ function interpolateStyle(
       value,
     ),
     zIndex: lerp(from.zIndex, to.zIndex, value),
-  };
+  }
 }
 
 function getFirstInvisibleStyle(windowSize: number): NumericStyle {
@@ -103,11 +103,11 @@ function getFirstInvisibleStyle(windowSize: number): NumericStyle {
     blur: 10,
     containerTranslateX: -50,
     zIndex: windowSize * 2 + 100,
-  };
+  }
 }
 
 function getLastInvisibleStyle(windowSize: number): NumericStyle {
-  const { maxDepth } = getBaseParams(windowSize);
+  const { maxDepth } = getBaseParams(windowSize)
   return {
     opacity: 0,
     rotateY: -32,
@@ -117,56 +117,56 @@ function getLastInvisibleStyle(windowSize: number): NumericStyle {
     blur: 100,
     containerTranslateX: 50,
     zIndex: 0,
-  };
+  }
 }
 
 function getInterpolatedStyle(
   position: number,
   windowSize: number,
 ): NumericStyle {
-  const length = windowSize;
-  if (!length) return getFirstInvisibleStyle(windowSize);
+  const length = windowSize
+  if (!length) return getFirstInvisibleStyle(windowSize)
 
-  if (position <= -1) return getFirstInvisibleStyle(windowSize);
-  if (position >= length) return getLastInvisibleStyle(windowSize);
+  if (position <= -1) return getFirstInvisibleStyle(windowSize)
+  if (position >= length) return getLastInvisibleStyle(windowSize)
 
   if (position < 0) {
-    const amount = position + 1;
+    const amount = position + 1
     return interpolateStyle(
       getFirstInvisibleStyle(windowSize),
       getVisibleStyleValues(0, windowSize),
       amount,
-    );
+    )
   }
 
   if (position > length - 1) {
-    const amount = position - (length - 1);
+    const amount = position - (length - 1)
     return interpolateStyle(
       getVisibleStyleValues(length - 1, windowSize),
       getLastInvisibleStyle(windowSize),
       amount,
-    );
+    )
   }
 
-  const startIndex = Math.floor(position);
-  const endIndex = Math.min(startIndex + 1, length - 1);
-  const amount = position - startIndex;
+  const startIndex = Math.floor(position)
+  const endIndex = Math.min(startIndex + 1, length - 1)
+  const amount = position - startIndex
 
   return interpolateStyle(
     getVisibleStyleValues(startIndex, windowSize),
     getVisibleStyleValues(endIndex, windowSize),
     amount,
-  );
+  )
 }
 
 export function applyProgressStyles(
   items: SliderItem[],
   progress: number,
   windowSize: number,
-): SliderItem[] {
+) {
   return items.map((item, index) => {
-    const styleValues = getInterpolatedStyle(index - progress - 1, windowSize);
-    const newStyle = buildStyle(styleValues);
+    const styleValues = getInterpolatedStyle(index - progress - 1, windowSize)
+    const newStyle = buildStyle(styleValues)
 
     return {
       ...item,
@@ -175,6 +175,6 @@ export function applyProgressStyles(
         style: newStyle.imageStyle,
         containerStyle: newStyle.containerStyle,
       },
-    };
-  });
+    }
+  })
 }
