@@ -310,4 +310,74 @@ describe('Slider State Machine', () => {
       expect(pressedState.frozenProgress).toBe(currentProgress)
     })
   })
+
+  describe('bounded mode (loop=false)', () => {
+    it('BUTTON_PRESS direction=1 at idx=0 moves to idx=1', () => {
+      const projects = ref(makeProjects(5))
+      const { state, send, selectedProjectIndex } = useSliderStateMachine(
+        projects,
+        ref(undefined),
+        ref(false),
+      )
+      expect(selectedProjectIndex.value).toBe(0)
+      send({ type: 'BUTTON_PRESS', direction: 1 })
+      // Let inertia + snap complete
+      raf.advanceFrames(300)
+      expect(state.value.type).toBe('idle')
+      expect(selectedProjectIndex.value).toBe(1)
+    })
+
+    it('BUTTON_PRESS direction=-1 at idx=0 does not go below 0', () => {
+      const projects = ref(makeProjects(5))
+      const { state, send, selectedProjectIndex } = useSliderStateMachine(
+        projects,
+        ref(undefined),
+        ref(false),
+      )
+      expect(selectedProjectIndex.value).toBe(0)
+      send({ type: 'BUTTON_PRESS', direction: -1 })
+      raf.advanceFrames(300)
+      expect(state.value.type).toBe('idle')
+      expect(selectedProjectIndex.value).toBe(0)
+    })
+
+    it('BUTTON_PRESS direction=1 at last index does not exceed max', () => {
+      const projects = ref(makeProjects(3))
+      const { state, send, selectedProjectIndex } = useSliderStateMachine(
+        projects,
+        ref(undefined),
+        ref(false),
+      )
+      // Move to last index first
+      send({ type: 'BUTTON_PRESS', direction: 1 })
+      raf.advanceFrames(300)
+      send({ type: 'BUTTON_PRESS', direction: 1 })
+      raf.advanceFrames(300)
+      expect(selectedProjectIndex.value).toBe(2)
+
+      // Try to go beyond
+      send({ type: 'BUTTON_PRESS', direction: 1 })
+      raf.advanceFrames(300)
+      expect(state.value.type).toBe('idle')
+      expect(selectedProjectIndex.value).toBe(2)
+    })
+
+    it('loop=true wraps index cyclically (regression)', () => {
+      const projects = ref(makeProjects(3))
+      const { state, send, selectedProjectIndex } = useSliderStateMachine(
+        projects,
+        ref(undefined),
+        ref(true),
+      )
+      // Move forward 3 times → should wrap back to 0
+      send({ type: 'BUTTON_PRESS', direction: 1 })
+      raf.advanceFrames(300)
+      send({ type: 'BUTTON_PRESS', direction: 1 })
+      raf.advanceFrames(300)
+      send({ type: 'BUTTON_PRESS', direction: 1 })
+      raf.advanceFrames(300)
+      expect(state.value.type).toBe('idle')
+      expect(selectedProjectIndex.value).toBe(0)
+    })
+  })
 })

@@ -90,8 +90,25 @@ export const PHYSICS = {
 export function useSliderStateMachine(
   projects: Ref<Project[]>,
   renderLimit: Ref<number | undefined>,
+  loop: Ref<boolean> = ref(true),
 ) {
   const state = ref<SliderState>({ type: 'idle' })
+  const selectedProjectIndex = ref(0)
+
+  function shiftSelectedIndex(steps: number): number {
+    const n = projects.value.length
+    if (n < 2) return 0
+    const old = selectedProjectIndex.value
+    if (loop.value) {
+      selectedProjectIndex.value = (((old + steps) % n) + n) % n
+      return steps
+    } else {
+      const next = Math.max(0, Math.min(old + steps, n - 1))
+      const actual = next - old
+      selectedProjectIndex.value = next
+      return actual
+    }
+  }
 
   function send(event: SliderEvent) {
     switch (state.value.type) {
@@ -238,7 +255,26 @@ export function useSliderStateMachine(
 
       const dampingFactor = Math.pow(0.94, dt / 16.67)
       const newVelocity = currentState.velocity * dampingFactor
-      const newProgress = currentState.progress + newVelocity * dt
+      let newProgress = currentState.progress + newVelocity * dt
+
+      // Shift index when progress crosses ±1
+      while (newProgress >= 1) {
+        const actual = shiftSelectedIndex(1)
+        if (actual === 0) {
+          // Bounded: hit the edge → snap back
+          startSnapLoop(0, 0)
+          return
+        }
+        newProgress -= 1
+      }
+      while (newProgress <= -1) {
+        const actual = shiftSelectedIndex(-1)
+        if (actual === 0) {
+          startSnapLoop(0, 0)
+          return
+        }
+        newProgress += 1
+      }
 
       if (Math.abs(newVelocity) <= 0.002) {
         startSnapLoop(newProgress, 0)
@@ -285,7 +321,11 @@ export function useSliderStateMachine(
         Math.abs(velocity) < PHYSICS.snapStopVelocity
 
       if (isSettled) {
-        // Transition to idle
+        // Commit the shift and transition to idle
+        const target = currentState.target
+        if (target !== 0) {
+          shiftSelectedIndex(target)
+        }
         state.value = { type: 'idle' }
         return
       }
@@ -323,5 +363,6 @@ export function useSliderStateMachine(
   return {
     state,
     send,
+    selectedProjectIndex,
   }
 }
