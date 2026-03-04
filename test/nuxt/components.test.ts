@@ -40,4 +40,22 @@ describe('PortfolioSlider', () => {
     const images = wrapper.findAll('img')
     expect(images.length).toBe(0)
   })
+
+  it('loop=false at left boundary: no left sentinel (fewer images)', async () => {
+    const wrapper = await mountSuspended(PortfolioSlider, {
+      props: { projects, renderLimit: 3, loop: false },
+    })
+    const images = wrapper.findAll('img')
+    // At idx=0 bounded: no left-invisible + 3 visible + right-invisible = 4
+    expect(images.length).toBe(4)
+  })
+
+  it('loop=true (default): both sentinels present', async () => {
+    const wrapper = await mountSuspended(PortfolioSlider, {
+      props: { projects, renderLimit: 3 },
+    })
+    const images = wrapper.findAll('img')
+    // left-invisible + 3 visible + right-invisible = 5
+    expect(images.length).toBe(5)
+  })
 })

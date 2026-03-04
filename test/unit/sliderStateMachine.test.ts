@@ -454,5 +454,61 @@ describe('Slider State Machine', () => {
         expect(progress).toBeCloseTo(0)
       })
     })
+
+    describe('inertia boundary → snap back', () => {
+      it('inertia at idx=0 with negative velocity snaps back, index stays 0', () => {
+        const projects = ref(makeProjects(5))
+        const { state, send, selectedProjectIndex } = useSliderStateMachine(
+          projects,
+          ref(undefined),
+          ref(false),
+        )
+        expect(selectedProjectIndex.value).toBe(0)
+
+        // Start inertia going backward (negative direction)
+        send({ type: 'BUTTON_PRESS', direction: -1 })
+        expect(state.value.type).toBe('inertia')
+
+        // Let it run — should hit boundary and snap back to idle
+        raf.advanceFrames(300)
+        expect(state.value.type).toBe('idle')
+        expect(selectedProjectIndex.value).toBe(0)
+      })
+
+      it('inertia at idx=last with positive velocity snaps back, index stays last', () => {
+        const projects = ref(makeProjects(3))
+        const { state, send, selectedProjectIndex } = useSliderStateMachine(
+          projects,
+          ref(undefined),
+          ref(false),
+        )
+        // Move to last
+        send({ type: 'BUTTON_PRESS', direction: 1 })
+        raf.advanceFrames(300)
+        send({ type: 'BUTTON_PRESS', direction: 1 })
+        raf.advanceFrames(300)
+        expect(selectedProjectIndex.value).toBe(2)
+
+        // Try to go further
+        send({ type: 'BUTTON_PRESS', direction: 1 })
+        raf.advanceFrames(300)
+        expect(state.value.type).toBe('idle')
+        expect(selectedProjectIndex.value).toBe(2)
+      })
+
+      it('loop=true inertia wraps around normally (regression)', () => {
+        const projects = ref(makeProjects(3))
+        const { state, send, selectedProjectIndex } = useSliderStateMachine(
+          projects,
+          ref(undefined),
+          ref(true),
+        )
+        // Go backward from idx=0 → should wrap to idx=2
+        send({ type: 'BUTTON_PRESS', direction: -1 })
+        raf.advanceFrames(300)
+        expect(state.value.type).toBe('idle')
+        expect(selectedProjectIndex.value).toBe(2)
+      })
+    })
   })
 })

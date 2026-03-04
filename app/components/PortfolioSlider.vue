@@ -4,15 +4,24 @@ import type { Project } from '~/app.vue'
 // import { wrapForSlider } from '~/composables/useSliderItems'
 // import { applyProgressStyles } from '~/composables/useSliderStyles'
 
-const props = defineProps<{
-  projects: Project[]
-  renderLimit?: number
-}>()
+const props = withDefaults(
+  defineProps<{
+    projects: Project[]
+    renderLimit?: number
+    loop?: boolean
+  }>(),
+  { loop: true },
+)
 
 const projectsRef = toRef(props, 'projects')
 const renderLimitRef = toRef(props, 'renderLimit')
+const loopRef = computed(() => props.loop)
 
-const { state, send } = useSliderStateMachine(projectsRef, renderLimitRef)
+const { state, send, selectedProjectIndex } = useSliderStateMachine(
+  projectsRef,
+  renderLimitRef,
+  loopRef,
+)
 
 // Вычисляемый windowSize
 const windowSize = computed(() => {
@@ -24,7 +33,12 @@ const windowSize = computed(() => {
 
 // Построение items с применением стилей
 const sliderItems = computed(() => {
-  const items = wrapForSlider(props.projects, 0, windowSize.value)
+  const items = wrapForSlider(
+    props.projects,
+    selectedProjectIndex.value,
+    windowSize.value,
+    loopRef.value,
+  )
   const progress =
     state.value.type === 'dragging' ||
     state.value.type === 'inertia' ||
