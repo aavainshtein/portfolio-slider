@@ -16,6 +16,9 @@ const selectedProjectIndex = ref(0)
 
 const renderLimit = ref(10)
 
+const route = useRoute()
+const loop = computed(() => route.query.loop !== 'false')
+
 const randomWords = [
   'awesome',
   'super',
@@ -217,6 +220,7 @@ function removeProject() {
     <PortfolioSlider
       :projects="projects"
       :renderLimit="renderLimit"
+      :loop="loop"
     >
     </PortfolioSlider>
   </div>

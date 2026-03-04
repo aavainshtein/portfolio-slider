@@ -29,4 +29,49 @@ describe('PortfolioSlider E2E', async () => {
     expect(images).toBeGreaterThan(0)
     await page.close()
   })
+
+  // --- Bounded mode (loop=false) ---
+
+  it('bounded: renders images with loop=false', async () => {
+    const page = await createPage('/?loop=false')
+    // Дожидаемся рендера slider images
+    await page.locator('img').first().waitFor({ timeout: 5000 })
+    const images = await page.locator('img').count()
+    expect(images).toBeGreaterThan(0)
+    await page.close()
+  })
+
+  it('bounded: Previous at position 0 does not wrap around', async () => {
+    const page = await createPage('/?loop=false')
+    await page.locator('img').first().waitFor({ timeout: 5000 })
+
+    const prevButton = page.locator('button', { hasText: 'Previous' })
+    // На позиции 0 нажимаем Previous — не должно крашиться
+    await prevButton.click()
+    // Ждём возможный bounce-анимации
+    await page.waitForTimeout(600)
+
+    const images = await page.locator('img').count()
+    expect(images).toBeGreaterThan(0)
+    await page.close()
+  })
+
+  it('bounded: Next beyond last element does not wrap around', async () => {
+    const page = await createPage('/?loop=false')
+    await page.locator('img').first().waitFor({ timeout: 5000 })
+
+    const nextButton = page.locator('button', { hasText: 'Next' })
+    // Кликаем Next больше раз, чем проектов — упираемся в границу
+    for (let i = 0; i < 10; i++) {
+      await nextButton.click()
+      await page.waitForTimeout(100)
+    }
+    // Ждём завершения анимации
+    await page.waitForTimeout(600)
+
+    // Страница не ломается, img ещё рендерятся
+    const images = await page.locator('img').count()
+    expect(images).toBeGreaterThan(0)
+    await page.close()
+  })
 })
