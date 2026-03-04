@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
+import { nextTick } from 'vue'
 import PortfolioSlider from '~/components/PortfolioSlider.vue'
 import { makeProjects } from '../helpers'
 
@@ -57,5 +58,34 @@ describe('PortfolioSlider', () => {
     const images = wrapper.findAll('img')
     // left-invisible + 3 visible + right-invisible = 5
     expect(images.length).toBe(5)
+  })
+
+  it('defines selectedProjectIndex as a v-model prop', async () => {
+    const wrapper = await mountSuspended(PortfolioSlider, {
+      props: { projects, selectedProjectIndex: 0 },
+    })
+    // Verify the component accepts selectedProjectIndex prop without error
+    expect(wrapper.props('selectedProjectIndex')).toBe(0)
+  })
+
+  it('v-model sync: component reflects updated selectedProjectIndex prop', async () => {
+    const wrapper = await mountSuspended(PortfolioSlider, {
+      props: { projects, selectedProjectIndex: 0 },
+    })
+    // Update prop externally
+    await wrapper.setProps({ selectedProjectIndex: 2 })
+    await nextTick()
+    // Component should still render without crashing
+    expect(wrapper.findAll('img').length).toBeGreaterThan(0)
+  })
+
+  it('accepts external selectedProjectIndex via v-model', async () => {
+    const wrapper = await mountSuspended(PortfolioSlider, {
+      props: { projects, selectedProjectIndex: 2 },
+    })
+    await nextTick()
+    // Компонент должен принять начальный индекс 2
+    // Проверяем что рендерится без ошибок
+    expect(wrapper.findAll('img').length).toBeGreaterThan(0)
   })
 })

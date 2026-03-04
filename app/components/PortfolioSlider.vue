@@ -12,12 +12,27 @@ const props = withDefaults(
   { loop: true },
 )
 
+const selectedProjectIndexModel = defineModel<number>(
+  'selectedProjectIndex',
+  { default: 0 },
+)
+
 const projectsRef = toRef(props, 'projects')
 const renderLimitRef = toRef(props, 'renderLimit')
 const loopRef = computed(() => props.loop)
 
 const { state, send, selectedProjectIndex, stopAnimation } =
   useSliderStateMachine(projectsRef, renderLimitRef, loopRef)
+
+// Sync machine → v-model
+watch(selectedProjectIndex, (v) => {
+  selectedProjectIndexModel.value = v
+})
+
+// Sync v-model → machine
+watch(selectedProjectIndexModel, (v) => {
+  selectedProjectIndex.value = v
+})
 
 onUnmounted(() => {
   stopAnimation()

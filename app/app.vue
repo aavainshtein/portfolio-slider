@@ -221,6 +221,7 @@ function removeProject() {
       :projects="projects"
       :renderLimit="renderLimit"
       :loop="loop"
+      v-model:selectedProjectIndex="selectedProjectIndex"
     >
     </PortfolioSlider>
   </div>
