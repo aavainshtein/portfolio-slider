@@ -167,6 +167,9 @@ export function useSliderStateMachine(
             }
 
             const stepOffset = truncateTowardZero(rawProgress)
+            if (stepOffset !== 0) {
+              shiftSelectedIndex(stepOffset)
+            }
 
             state.value = {
               type: 'dragging',
@@ -190,7 +193,8 @@ export function useSliderStateMachine(
       case 'dragging':
         switch (event.type) {
           case 'DRAG_MOVE': {
-            const baseOffset = state.value.baseOffset
+            const currentDragging = state.value
+            const baseOffset = currentDragging.baseOffset
             const rawProgress =
               baseOffset + -event.movementX / event.pixelsPerStep
 
@@ -211,12 +215,16 @@ export function useSliderStateMachine(
               }
             }
 
-            const stepOffset = truncateTowardZero(rawProgress)
+            const desiredStepOffset = truncateTowardZero(rawProgress)
+            const stepDelta = desiredStepOffset - currentDragging.stepOffset
+            if (stepDelta !== 0) {
+              shiftSelectedIndex(stepDelta)
+            }
 
             state.value = {
               type: 'dragging',
-              progress: rawProgress - stepOffset,
-              stepOffset: stepOffset,
+              progress: rawProgress - desiredStepOffset,
+              stepOffset: desiredStepOffset,
               baseOffset: baseOffset,
             }
             return

@@ -17,7 +17,14 @@ const selectedProjectIndex = ref(0)
 const renderLimit = ref(10)
 
 const route = useRoute()
+const router = useRouter()
 const loop = computed(() => route.query.loop !== 'false')
+
+function toggleLoop() {
+  router.replace({
+    query: { ...route.query, loop: loop.value ? 'false' : undefined },
+  })
+}
 
 const randomWords = [
   'awesome',
@@ -154,6 +161,20 @@ function removeProject() {
       <ClientOnly>
         <DarkSwitch />
       </ClientOnly>
+      <div class="flex items-center justify-center gap-3">
+        <button
+          type="button"
+          class="h-10 rounded-lg border px-3 text-sm font-medium"
+          :class="
+            loop
+              ? 'border-cyan-400 bg-cyan-50 text-cyan-700 dark:border-cyan-600 dark:bg-cyan-950 dark:text-cyan-300'
+              : 'border-orange-400 bg-orange-50 text-orange-700 dark:border-orange-600 dark:bg-orange-950 dark:text-orange-300'
+          "
+          @click="toggleLoop"
+        >
+          {{ loop ? '∞ Loop' : '⇄ Bounded' }}
+        </button>
+      </div>
       <div class="flex items-center justify-center gap-3">
         <button
           type="button"
