@@ -114,16 +114,19 @@ export function useSliderStateMachine(
     const old = selectedProjectIndex.value
     if (loop.value) {
       selectedProjectIndex.value = (((old + steps) % n) + n) % n
+      console.log(`[SM] shiftSelectedIndex(${steps}) loop: ${old} → ${selectedProjectIndex.value}`)
       return steps
     } else {
       const next = Math.max(0, Math.min(old + steps, n - 1))
       const actual = next - old
       selectedProjectIndex.value = next
+      console.log(`[SM] shiftSelectedIndex(${steps}) bounded: ${old} → ${next}, actual=${actual}`)
       return actual
     }
   }
 
   function send(event: SliderEvent) {
+    console.log(`[SM] send(${event.type}) in state=${state.value.type}, idx=${selectedProjectIndex.value}`, event.type === 'DRAG_MOVE' ? `mvX=${event.movementX.toFixed(1)} pps=${event.pixelsPerStep.toFixed(1)}` : event.type === 'POINTER_UP' ? `vel=${event.releaseVelocity.toFixed(5)}` : event.type === 'BUTTON_PRESS' ? `dir=${event.direction}` : '')
     switch (state.value.type) {
       case 'idle':
         switch (event.type) {
@@ -149,34 +152,36 @@ export function useSliderStateMachine(
             const rawProgress =
               frozenProgress + -event.movementX / event.pixelsPerStep
 
-            // Bounded rubber-band: if at edge and dragging past it
-            if (!loop.value) {
-              const idx = selectedProjectIndex.value
-              const n = projects.value.length
-              const atLeftEdge = idx === 0 && rawProgress < 0
-              const atRightEdge = idx === n - 1 && rawProgress > 0
-              if (atLeftEdge || atRightEdge) {
-                state.value = {
-                  type: 'dragging',
-                  progress: rubberBand(rawProgress),
-                  stepOffset: 0,
-                  baseOffset: frozenProgress,
-                }
-                return
+            const stepOffset = truncateTowardZero(rawProgress)
+            let actualStepOffset = stepOffset
+
+            if (stepOffset !== 0) {
+              if (!loop.value) {
+                const actual = shiftSelectedIndex(stepOffset)
+                actualStepOffset = actual
+              } else {
+                shiftSelectedIndex(stepOffset)
               }
             }
 
-            const stepOffset = truncateTowardZero(rawProgress)
-            if (stepOffset !== 0) {
-              shiftSelectedIndex(stepOffset)
+            let progress = rawProgress - actualStepOffset
+
+            // Bounded rubber-band: apply only to fractional part when at edge
+            if (!loop.value) {
+              const idx = selectedProjectIndex.value
+              const n = projects.value.length
+              if ((idx === 0 && progress < 0) || (idx === n - 1 && progress > 0)) {
+                progress = rubberBand(progress)
+              }
             }
 
             state.value = {
               type: 'dragging',
-              progress: rawProgress - stepOffset,
-              stepOffset: stepOffset,
+              progress,
+              stepOffset: actualStepOffset,
               baseOffset: frozenProgress,
             }
+            console.log(`[SM] pressed→dragging: rawP=${rawProgress.toFixed(3)} step=${actualStepOffset} progress=${progress.toFixed(3)} idx=${selectedProjectIndex.value}`)
             return
           }
 
@@ -198,35 +203,37 @@ export function useSliderStateMachine(
             const rawProgress =
               baseOffset + -event.movementX / event.pixelsPerStep
 
-            // Bounded rubber-band
-            if (!loop.value) {
-              const idx = selectedProjectIndex.value
-              const n = projects.value.length
-              const atLeftEdge = idx === 0 && rawProgress < 0
-              const atRightEdge = idx === n - 1 && rawProgress > 0
-              if (atLeftEdge || atRightEdge) {
-                state.value = {
-                  type: 'dragging',
-                  progress: rubberBand(rawProgress),
-                  stepOffset: 0,
-                  baseOffset: baseOffset,
-                }
-                return
+            const desiredStepOffset = truncateTowardZero(rawProgress)
+            const stepDelta = desiredStepOffset - currentDragging.stepOffset
+            let actualStepOffset = desiredStepOffset
+
+            if (stepDelta !== 0) {
+              if (!loop.value) {
+                const actual = shiftSelectedIndex(stepDelta)
+                actualStepOffset = currentDragging.stepOffset + actual
+              } else {
+                shiftSelectedIndex(stepDelta)
               }
             }
 
-            const desiredStepOffset = truncateTowardZero(rawProgress)
-            const stepDelta = desiredStepOffset - currentDragging.stepOffset
-            if (stepDelta !== 0) {
-              shiftSelectedIndex(stepDelta)
+            let progress = rawProgress - actualStepOffset
+
+            // Bounded rubber-band: apply only to fractional part when at edge
+            if (!loop.value) {
+              const idx = selectedProjectIndex.value
+              const n = projects.value.length
+              if ((idx === 0 && progress < 0) || (idx === n - 1 && progress > 0)) {
+                progress = rubberBand(progress)
+              }
             }
 
             state.value = {
               type: 'dragging',
-              progress: rawProgress - desiredStepOffset,
-              stepOffset: desiredStepOffset,
+              progress,
+              stepOffset: actualStepOffset,
               baseOffset: baseOffset,
             }
+            console.log(`[SM] dragging→dragging: rawP=${rawProgress.toFixed(3)} desired=${desiredStepOffset} delta=${stepDelta} actual=${actualStepOffset} progress=${progress.toFixed(3)} idx=${selectedProjectIndex.value}`)
             return
           }
 
@@ -236,11 +243,10 @@ export function useSliderStateMachine(
               return
             }
             if (event.releaseVelocity !== 0) {
+              console.log(`[SM] dragging→inertia: vel=${event.releaseVelocity.toFixed(5)} progress=${state.value.progress.toFixed(3)}`)
               startInertiaLoop(
                 event.releaseVelocity,
-                state.value.baseOffset +
-                  state.value.stepOffset +
-                  state.value.progress,
+                state.value.progress,
               )
               return
             }
@@ -314,12 +320,24 @@ export function useSliderStateMachine(
       const newVelocity = currentState.velocity * dampingFactor
       let newProgress = currentState.progress + newVelocity * dt
 
+      // Bounded: at edge and progress pushing past boundary → rubber-band snap back
+      if (!loop.value) {
+        const idx = selectedProjectIndex.value
+        const n = projects.value.length
+        if ((idx === 0 && newProgress < 0) || (idx === n - 1 && newProgress > 0)) {
+          console.log(`[SM] inertia at edge: idx=${idx} newP=${newProgress.toFixed(3)} → rubberBand → snapLoop`)
+          startSnapLoop(rubberBand(newProgress), 0)
+          return
+        }
+      }
+
       // Shift index when progress crosses ±1
       while (newProgress >= 1) {
         const actual = shiftSelectedIndex(1)
         if (actual === 0) {
-          // Bounded: hit the edge → snap back
-          startSnapLoop(0, 0)
+          // Bounded: hit the edge → rubber-band overshoot, then snap back
+          console.log(`[SM] inertia hit +edge: newP=${newProgress.toFixed(3)} → rubberBand → snapLoop`)
+          startSnapLoop(rubberBand(newProgress), 0)
           return
         }
         newProgress -= 1
@@ -327,13 +345,15 @@ export function useSliderStateMachine(
       while (newProgress <= -1) {
         const actual = shiftSelectedIndex(-1)
         if (actual === 0) {
-          startSnapLoop(0, 0)
+          console.log(`[SM] inertia hit -edge: newP=${newProgress.toFixed(3)} → rubberBand → snapLoop`)
+          startSnapLoop(rubberBand(newProgress), 0)
           return
         }
         newProgress += 1
       }
 
       if (Math.abs(newVelocity) <= 0.002) {
+        console.log(`[SM] inertia→snap: vel=${newVelocity.toFixed(5)} progress=${newProgress.toFixed(3)} idx=${selectedProjectIndex.value}`)
         startSnapLoop(newProgress, 0)
         return
       }
@@ -356,6 +376,7 @@ export function useSliderStateMachine(
       frameId,
       lastTs: null,
     }
+    console.log(`[SM] startInertiaLoop: vel=${velocity.toFixed(5)} progress=${progress.toFixed(3)} idx=${selectedProjectIndex.value}`)
   }
 
   function startSnapLoop(progress: number, initialVelocity: number) {
@@ -383,6 +404,7 @@ export function useSliderStateMachine(
         if (target !== 0) {
           shiftSelectedIndex(target)
         }
+        console.log(`[SM] snap settled: target=${target} idx=${selectedProjectIndex.value}`)
         state.value = { type: 'idle' }
         return
       }
@@ -400,14 +422,24 @@ export function useSliderStateMachine(
 
     const frameId = requestAnimationFrame(tick)
 
+    let target = Math.round(progress)
+    // Bounded: clamp target at edges so we don't try to shift past boundary
+    if (!loop.value) {
+      const idx = selectedProjectIndex.value
+      const n = projects.value.length
+      if (idx === 0 && target < 0) target = 0
+      if (idx === n - 1 && target > 0) target = 0
+    }
+
     state.value = {
       type: 'snapping',
       velocity: initialVelocity,
       progress,
-      target: Math.round(progress),
+      target,
       frameId,
       lastTs: null,
     }
+    console.log(`[SM] startSnapLoop: progress=${progress.toFixed(3)} target=${target} idx=${selectedProjectIndex.value}`)
   }
 
   function stopAnimation() {

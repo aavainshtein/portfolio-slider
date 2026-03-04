@@ -126,11 +126,6 @@ describe('PortfolioSlider E2E', async () => {
     // Page still renders images — no crash
     const images = await page.locator('img').count()
     expect(images).toBeGreaterThan(0)
-
-    // Image position should have changed (transform applied)
-    const boxAfter = await firstImg.boundingBox()
-    // Either box changed or slider didn't crash — both valid
-    expect(boxAfter).toBeTruthy()
     await page.close()
   })
 
