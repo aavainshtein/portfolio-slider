@@ -57,13 +57,14 @@ export function wrapForSlider(
   projects: Project[],
   activeIndex: number,
   renderLimit?: number | undefined,
+  loop: boolean = true,
 ): SliderItem[] {
   const realRenderLimit = Math.min(
     renderLimit ?? projects.length,
     projects.length,
   )
 
-  const visibleItems = getVisibleItems(projects, activeIndex, renderLimit)
+  const visibleItems = getVisibleItems(projects, activeIndex, renderLimit, loop)
 
   if (visibleItems.length < 1) return [] as SliderItem[]
 
@@ -73,32 +74,43 @@ export function wrapForSlider(
   if (firstVisibleIndex === undefined || lastVisibleIndex === undefined)
     return [] as SliderItem[]
 
-  const firstInvisibleItemIndex =
-    firstVisibleIndex === 0
-      ? projects.length - 1
-      : (firstVisibleIndex - 1) % projects.length
+  // In bounded mode, only add sentinels where there are items beyond the edge
+  const hasLeftNeighbor = loop || firstVisibleIndex > 0
+  const hasRightNeighbor = loop || lastVisibleIndex < projects.length - 1
 
-  const lastInvisibleItemIndex =
-    lastVisibleIndex === projects.length - 1
-      ? 0
-      : (lastVisibleIndex + 1) % projects.length
+  const result: SliderItem[] = []
 
-  const firstInvisibleProject = projects[firstInvisibleItemIndex]
-  const lastInvisibleProject = projects[lastInvisibleItemIndex]
-
-  if (!firstInvisibleProject || !lastInvisibleProject) return [] as SliderItem[]
-
-  const firstInvisibleItem = {
-    ...firstInvisibleProject,
-    originalIndex: firstInvisibleItemIndex,
-    id: `left-invisible-${getProjectId(firstInvisibleProject)}`,
+  if (hasLeftNeighbor) {
+    const firstInvisibleItemIndex =
+      firstVisibleIndex === 0
+        ? projects.length - 1
+        : (firstVisibleIndex - 1) % projects.length
+    const firstInvisibleProject = projects[firstInvisibleItemIndex]
+    if (firstInvisibleProject) {
+      result.push({
+        ...firstInvisibleProject,
+        originalIndex: firstInvisibleItemIndex,
+        id: `left-invisible-${getProjectId(firstInvisibleProject)}`,
+      })
+    }
   }
 
-  const lastInvisibleItem = {
-    ...lastInvisibleProject,
-    originalIndex: lastInvisibleItemIndex,
-    id: `right-invisible-${getProjectId(lastInvisibleProject)}`,
+  result.push(...visibleItems)
+
+  if (hasRightNeighbor) {
+    const lastInvisibleItemIndex =
+      lastVisibleIndex === projects.length - 1
+        ? 0
+        : (lastVisibleIndex + 1) % projects.length
+    const lastInvisibleProject = projects[lastInvisibleItemIndex]
+    if (lastInvisibleProject) {
+      result.push({
+        ...lastInvisibleProject,
+        originalIndex: lastInvisibleItemIndex,
+        id: `right-invisible-${getProjectId(lastInvisibleProject)}`,
+      })
+    }
   }
 
-  return [firstInvisibleItem, ...visibleItems, lastInvisibleItem]
+  return result
 }

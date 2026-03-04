@@ -169,3 +169,42 @@ describe('wrapForSlider', () => {
     expect(wrappedItems[2]?.originalIndex).toBe(0)
   })
 })
+
+describe('wrapForSlider bounded (loop=false)', () => {
+  it('middle position: both sentinels present', () => {
+    const projects = makeProjects(5)
+    const result = wrapForSlider(projects, 1, 3, false)
+    // visible: [1,2,3], left-invisible + 3 visible + right-invisible = 5
+    expect(result.length).toBe(5)
+    expect(result[0]?.id).toContain('left-invisible')
+    expect(result[result.length - 1]?.id).toContain('right-invisible')
+  })
+
+  it('at left boundary (activeIdx=0): no left sentinel', () => {
+    const projects = makeProjects(5)
+    const result = wrapForSlider(projects, 0, 3, false)
+    // no left-invisible + 3 visible + right-invisible = 4
+    expect(result.length).toBe(4)
+    expect(result[0]?.id).not.toContain('left-invisible')
+    expect(result[0]?.originalIndex).toBe(0)
+    expect(result[result.length - 1]?.id).toContain('right-invisible')
+  })
+
+  it('at right boundary (activeIdx=last): no right sentinel', () => {
+    const projects = makeProjects(5)
+    const result = wrapForSlider(projects, 4, 3, false)
+    // left-invisible + 3 visible + no right-invisible = 4
+    expect(result.length).toBe(4)
+    expect(result[0]?.id).toContain('left-invisible')
+    expect(result[result.length - 1]?.id).not.toContain('right-invisible')
+    expect(result[result.length - 1]?.originalIndex).toBe(4)
+  })
+
+  it('1 element: no sentinels', () => {
+    const projects = makeProjects(1)
+    const result = wrapForSlider(projects, 0, 3, false)
+    // just the one item, no sentinels
+    expect(result.length).toBe(1)
+    expect(result[0]?.originalIndex).toBe(0)
+  })
+})
