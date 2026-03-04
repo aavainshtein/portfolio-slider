@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import type { Project } from '~/app.vue'
-
-// import { wrapForSlider } from '~/composables/useSliderItems'
-// import { applyProgressStyles } from '~/composables/useSliderStyles'
+import type { FullGestureState } from '@vueuse/gesture'
+import { createDragHandler } from '~/composables/useGestureAdapter'
 
 const props = withDefaults(
   defineProps<{
@@ -48,6 +47,20 @@ const sliderItems = computed(() => {
   return applyProgressStyles(items, progress, windowSize.value)
 })
 
+// --- Drag gesture ---
+const sliderRef = ref<HTMLElement | null>(null)
+
+const dragHandler = createDragHandler({
+  send,
+  getItemCount: () => sliderItems.value.length,
+  getWindowSize: () => windowSize.value,
+  getContainerWidth: () => sliderRef.value?.clientWidth ?? 320,
+})
+
+function onDrag(gestureState: FullGestureState<'drag'>) {
+  dragHandler(gestureState)
+}
+
 function goToNextItem() {
   send({ type: 'BUTTON_PRESS', direction: 1 })
 }
@@ -57,15 +70,21 @@ function goToPrevItem() {
 }
 </script>
 <template>
-  <div>
+  <div
+    ref="sliderRef"
+    v-drag="onDrag"
+    style="touch-action: pan-y; user-select: none; -webkit-user-select: none"
+  >
     <div
       v-for="item in sliderItems"
       :key="item.id"
+      :style="item.img.containerStyle"
     >
       <img
         :src="item.img.src"
         :alt="item.img.alt"
         :style="item.img.style"
+        draggable="false"
       />
     </div>
     <button @click="goToPrevItem">Previous</button>
