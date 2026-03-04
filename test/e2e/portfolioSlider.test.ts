@@ -21,7 +21,7 @@ describe('PortfolioSlider E2E', async () => {
   it('next button exists and is clickable', async () => {
     const page = await createPage('/')
 
-    const nextButton = page.locator('button', { hasText: 'Next' })
+    const nextButton = page.getByRole('button', { name: 'Next' }).last()
     await nextButton.click()
     await nextButton.click()
     // После клика страница не ломается, img ещё рендерятся
@@ -45,7 +45,7 @@ describe('PortfolioSlider E2E', async () => {
     const page = await createPage('/?loop=false')
     await page.locator('img').first().waitFor({ timeout: 5000 })
 
-    const prevButton = page.locator('button', { hasText: 'Previous' })
+    const prevButton = page.getByRole('button', { name: 'Previous' }).last()
     // На позиции 0 нажимаем Previous — не должно крашиться
     await prevButton.click()
     // Ждём возможный bounce-анимации
@@ -60,7 +60,7 @@ describe('PortfolioSlider E2E', async () => {
     const page = await createPage('/?loop=false')
     await page.locator('img').first().waitFor({ timeout: 5000 })
 
-    const nextButton = page.locator('button', { hasText: 'Next' })
+    const nextButton = page.getByRole('button', { name: 'Next' }).last()
     // Кликаем Next больше раз, чем проектов — упираемся в границу
     for (let i = 0; i < 10; i++) {
       await nextButton.click()
