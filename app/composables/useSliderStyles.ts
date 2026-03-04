@@ -19,8 +19,8 @@ export function lerp(start: number, end: number, value: number) {
   return start + (end - start) * value
 }
 
-function getBaseParams(windowSize: number) {
-  const length = windowSize
+function getBaseParams(renderLimit: number) {
+  const length = renderLimit
   const maxDepth = Math.min(length * 40, 500)
   return {
     length,
@@ -34,10 +34,10 @@ function getBaseParams(windowSize: number) {
 
 function getVisibleStyleValues(
   index: number,
-  windowSize: number,
+  renderLimit: number,
 ): NumericStyle {
   const { length, last, maxRotate, maxDepth, minScale, maxBlur } =
-    getBaseParams(windowSize)
+    getBaseParams(renderLimit)
   const positionRatio = index / last
 
   return {
@@ -93,7 +93,7 @@ export function interpolateStyle(
   }
 }
 
-function getFirstInvisibleStyle(windowSize: number): NumericStyle {
+function getFirstInvisibleStyle(renderLimit: number): NumericStyle {
   return {
     opacity: 0,
     rotateY: 0,
@@ -102,12 +102,12 @@ function getFirstInvisibleStyle(windowSize: number): NumericStyle {
     scale: 1,
     blur: 10,
     containerTranslateX: -50,
-    zIndex: windowSize * 2 + 100,
+    zIndex: renderLimit * 2 + 100,
   }
 }
 
-function getLastInvisibleStyle(windowSize: number): NumericStyle {
-  const { maxDepth } = getBaseParams(windowSize)
+function getLastInvisibleStyle(renderLimit: number): NumericStyle {
+  const { maxDepth } = getBaseParams(renderLimit)
   return {
     opacity: 0,
     rotateY: -32,
@@ -122,19 +122,19 @@ function getLastInvisibleStyle(windowSize: number): NumericStyle {
 
 function getInterpolatedStyle(
   position: number,
-  windowSize: number,
+  renderLimit: number,
 ): NumericStyle {
-  const length = windowSize
-  if (!length) return getFirstInvisibleStyle(windowSize)
+  const length = renderLimit
+  if (!length) return getFirstInvisibleStyle(renderLimit)
 
-  if (position <= -1) return getFirstInvisibleStyle(windowSize)
-  if (position >= length) return getLastInvisibleStyle(windowSize)
+  if (position <= -1) return getFirstInvisibleStyle(renderLimit)
+  if (position >= length) return getLastInvisibleStyle(renderLimit)
 
   if (position < 0) {
     const amount = position + 1
     return interpolateStyle(
-      getFirstInvisibleStyle(windowSize),
-      getVisibleStyleValues(0, windowSize),
+      getFirstInvisibleStyle(renderLimit),
+      getVisibleStyleValues(0, renderLimit),
       amount,
     )
   }
@@ -142,8 +142,8 @@ function getInterpolatedStyle(
   if (position > length - 1) {
     const amount = position - (length - 1)
     return interpolateStyle(
-      getVisibleStyleValues(length - 1, windowSize),
-      getLastInvisibleStyle(windowSize),
+      getVisibleStyleValues(length - 1, renderLimit),
+      getLastInvisibleStyle(renderLimit),
       amount,
     )
   }
@@ -153,8 +153,8 @@ function getInterpolatedStyle(
   const amount = position - startIndex
 
   return interpolateStyle(
-    getVisibleStyleValues(startIndex, windowSize),
-    getVisibleStyleValues(endIndex, windowSize),
+    getVisibleStyleValues(startIndex, renderLimit),
+    getVisibleStyleValues(endIndex, renderLimit),
     amount,
   )
 }
@@ -162,10 +162,10 @@ function getInterpolatedStyle(
 export function applyProgressStyles(
   items: SliderItem[],
   progress: number,
-  windowSize: number,
+  renderLimit: number,
 ) {
   return items.map((item, index) => {
-    const styleValues = getInterpolatedStyle(index - progress - 1, windowSize)
+    const styleValues = getInterpolatedStyle(index - progress - 1, renderLimit)
     const newStyle = buildStyle(styleValues)
 
     return {

@@ -75,7 +75,7 @@ type SliderEvent =
       direction: 1 | -1
     }
 
-const PHYSICS = {
+export const PHYSICS = {
   velocityInfluence: 1.35,
   maxInertiaVelocity: 0.035,
   inertiaDamping: 0.94,

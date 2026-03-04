@@ -214,6 +214,10 @@ function removeProject() {
 
     <!-- Heading End-->
 
-    <PortfolioSlider> </PortfolioSlider>
+    <PortfolioSlider
+      :projects="projects"
+      :renderLimit="renderLimit"
+    >
+    </PortfolioSlider>
   </div>
 </template>

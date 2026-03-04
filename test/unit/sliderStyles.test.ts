@@ -1,15 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { useSliderStateMachine } from '../../app/composables/useSliderStateMachine'
-import { makeProjects, mockRAF } from '../helpers'
-import type { SliderItem } from '../../app/composables/useSliderItems'
-import {
-  getVisibleItems,
-  wrapForSlider,
-} from '../../app/composables/useSliderItems'
-import {
-  applyProgressStyles,
-  type NumericStyle,
-} from '../../app/composables/useSliderStyles'
+import { makeProjects } from '../helpers'
+import { wrapForSlider } from '../../app/composables/useSliderItems'
+import { applyProgressStyles } from '../../app/composables/useSliderStyles'
 
 describe('Slider Styles', () => {
   it('items have img and container styles', () => {
@@ -47,8 +39,6 @@ describe('Slider Styles', () => {
     const zIndexes = wrappedWithStyleItems.map((item) =>
       parseInt(item.img.containerStyle.zIndex as string, 10),
     )
-
-    console.log(zIndexes)
 
     for (let i = 1; i < zIndexes.length; i++) {
       expect(zIndexes[i]).toBeLessThan(zIndexes[i - 1]!)
