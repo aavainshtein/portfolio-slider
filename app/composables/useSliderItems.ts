@@ -13,11 +13,24 @@ export function getVisibleItems(
   projects: Project[],
   activeIndex: number,
   renderLimit: number | undefined,
+  loop: boolean = true,
 ): SliderItem[] {
   const realRenderLimit = Math.min(
     renderLimit ?? projects.length,
     projects.length,
   )
+
+  if (!loop) {
+    const start = Math.max(
+      0,
+      Math.min(activeIndex, projects.length - realRenderLimit),
+    )
+    return projects.slice(start, start + realRenderLimit).map((item, i) => ({
+      ...item,
+      originalIndex: start + i,
+      id: getProjectId(item),
+    }))
+  }
 
   const firstPartOfElements = projects
     .slice(activeIndex, activeIndex + realRenderLimit)
