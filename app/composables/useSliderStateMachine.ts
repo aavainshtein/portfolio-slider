@@ -6,6 +6,19 @@ function truncateTowardZero(value: number) {
   return value < 0 ? Math.ceil(value) : Math.floor(value)
 }
 
+export function rubberBand(
+  overscroll: number,
+  maxOverscroll = 1,
+  coeff = 0.55,
+): number {
+  return (
+    (1 - Math.exp(-Math.abs(overscroll) / maxOverscroll)) *
+    maxOverscroll *
+    coeff *
+    Math.sign(overscroll)
+  )
+}
+
 // --- States ---
 // Каждое состояние содержит только те данные, которые имеют смысл в нём.
 
@@ -135,6 +148,24 @@ export function useSliderStateMachine(
             const frozenProgress = state.value.frozenProgress
             const rawProgress =
               frozenProgress + -event.movementX / event.pixelsPerStep
+
+            // Bounded rubber-band: if at edge and dragging past it
+            if (!loop.value) {
+              const idx = selectedProjectIndex.value
+              const n = projects.value.length
+              const atLeftEdge = idx === 0 && rawProgress < 0
+              const atRightEdge = idx === n - 1 && rawProgress > 0
+              if (atLeftEdge || atRightEdge) {
+                state.value = {
+                  type: 'dragging',
+                  progress: rubberBand(rawProgress),
+                  stepOffset: 0,
+                  baseOffset: frozenProgress,
+                }
+                return
+              }
+            }
+
             const stepOffset = truncateTowardZero(rawProgress)
 
             state.value = {
@@ -162,6 +193,24 @@ export function useSliderStateMachine(
             const baseOffset = state.value.baseOffset
             const rawProgress =
               baseOffset + -event.movementX / event.pixelsPerStep
+
+            // Bounded rubber-band
+            if (!loop.value) {
+              const idx = selectedProjectIndex.value
+              const n = projects.value.length
+              const atLeftEdge = idx === 0 && rawProgress < 0
+              const atRightEdge = idx === n - 1 && rawProgress > 0
+              if (atLeftEdge || atRightEdge) {
+                state.value = {
+                  type: 'dragging',
+                  progress: rubberBand(rawProgress),
+                  stepOffset: 0,
+                  baseOffset: baseOffset,
+                }
+                return
+              }
+            }
+
             const stepOffset = truncateTowardZero(rawProgress)
 
             state.value = {

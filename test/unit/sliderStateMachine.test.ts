@@ -379,5 +379,80 @@ describe('Slider State Machine', () => {
       expect(state.value.type).toBe('idle')
       expect(selectedProjectIndex.value).toBe(0)
     })
+
+    describe('drag rubber-band at boundaries', () => {
+      it('drag past left edge at idx=0: progress is rubber-banded (smaller than linear)', () => {
+        const projects = ref(makeProjects(5))
+        const { state, send } = useSliderStateMachine(
+          projects,
+          ref(undefined),
+          ref(false),
+        )
+        send({ type: 'POINTER_DOWN' })
+        // Drag right (positive movementX) → negative progress → past left edge
+        send({
+          type: 'DRAG_MOVE',
+          movementX: 200,
+          pixelsPerStep: 100,
+          dirY: 0,
+        })
+        expect(state.value.type).toBe('dragging')
+        const progress = (state.value as { progress: number }).progress
+        // Linear would be -2.0, rubber-band should make it much smaller in magnitude
+        expect(progress).toBeLessThan(0)
+        expect(Math.abs(progress)).toBeLessThan(1)
+      })
+
+      it('drag past right edge at idx=last: progress is rubber-banded', () => {
+        const projects = ref(makeProjects(3))
+        const { state, send, selectedProjectIndex } = useSliderStateMachine(
+          projects,
+          ref(undefined),
+          ref(false),
+        )
+        // Move to last index
+        send({ type: 'BUTTON_PRESS', direction: 1 })
+        raf.advanceFrames(300)
+        send({ type: 'BUTTON_PRESS', direction: 1 })
+        raf.advanceFrames(300)
+        expect(selectedProjectIndex.value).toBe(2)
+
+        send({ type: 'POINTER_DOWN' })
+        // Drag left (negative movementX) → positive progress → past right edge
+        send({
+          type: 'DRAG_MOVE',
+          movementX: -200,
+          pixelsPerStep: 100,
+          dirY: 0,
+        })
+        expect(state.value.type).toBe('dragging')
+        const progress = (state.value as { progress: number }).progress
+        expect(progress).toBeGreaterThan(0)
+        expect(Math.abs(progress)).toBeLessThan(1)
+      })
+
+      it('loop=true: drag does not rubber-band (regression)', () => {
+        const projects = ref(makeProjects(5))
+        const { state, send } = useSliderStateMachine(
+          projects,
+          ref(undefined),
+          ref(true),
+        )
+        send({ type: 'POINTER_DOWN' })
+        send({
+          type: 'DRAG_MOVE',
+          movementX: 200,
+          pixelsPerStep: 100,
+          dirY: 0,
+        })
+        expect(state.value.type).toBe('dragging')
+        const progress = (state.value as { progress: number }).progress
+        // In loop mode, progress is the fractional part after truncation: -2.0 → progress=0, stepOffset=-2
+        // The raw progress should NOT be rubber-banded
+        const stepOffset = (state.value as { stepOffset: number }).stepOffset
+        expect(stepOffset).toBe(-2)
+        expect(progress).toBeCloseTo(0)
+      })
+    })
   })
 })
