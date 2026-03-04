@@ -103,6 +103,10 @@ function goToPrevItem() {
         draggable="false"
       />
     </div>
+    <slot
+      name="description"
+      :selectedItemIndex="selectedProjectIndex"
+    />
     <button @click="goToPrevItem">Previous</button>
     <button @click="goToNextItem">Next</button>
   </div>

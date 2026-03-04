@@ -88,4 +88,28 @@ describe('PortfolioSlider', () => {
     // Проверяем что рендерится без ошибок
     expect(wrapper.findAll('img').length).toBeGreaterThan(0)
   })
+
+  it('renders description slot content', async () => {
+    const wrapper = await mountSuspended(PortfolioSlider, {
+      props: { projects },
+      slots: {
+        description: '<div class="test-desc">Hello</div>',
+      },
+    })
+    expect(wrapper.find('.test-desc').exists()).toBe(true)
+    expect(wrapper.find('.test-desc').text()).toBe('Hello')
+  })
+
+  it('description slot receives selectedItemIndex', async () => {
+    const wrapper = await mountSuspended(PortfolioSlider, {
+      props: { projects },
+      slots: {
+        description: `<template #description="{ selectedItemIndex }">
+          <span class="idx">{{ selectedItemIndex }}</span>
+        </template>`,
+      },
+    })
+    expect(wrapper.find('.idx').exists()).toBe(true)
+    expect(wrapper.find('.idx').text()).toBe('0')
+  })
 })
