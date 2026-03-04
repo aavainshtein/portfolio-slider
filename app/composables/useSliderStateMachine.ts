@@ -413,5 +413,6 @@ export function useSliderStateMachine(
     state,
     send,
     selectedProjectIndex,
+    stopAnimation,
   }
 }

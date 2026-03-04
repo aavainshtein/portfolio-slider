@@ -16,11 +16,12 @@ const projectsRef = toRef(props, 'projects')
 const renderLimitRef = toRef(props, 'renderLimit')
 const loopRef = computed(() => props.loop)
 
-const { state, send, selectedProjectIndex } = useSliderStateMachine(
-  projectsRef,
-  renderLimitRef,
-  loopRef,
-)
+const { state, send, selectedProjectIndex, stopAnimation } =
+  useSliderStateMachine(projectsRef, renderLimitRef, loopRef)
+
+onUnmounted(() => {
+  stopAnimation()
+})
 
 // Вычисляемый windowSize
 const windowSize = computed(() => {
